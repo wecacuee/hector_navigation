@@ -1242,6 +1242,9 @@ bool HectorExplorationPlanner::findFrontiersCloseToPath(std::vector<geometry_msg
     //}
   }
 
+  std::vector<geometry_msgs::PoseStamped> dummyFrontiers;
+  clusterFrontiers(allFrontiers, dummyFrontiers);
+
   return (frontiers.size() > 0);
 }
 
@@ -1249,47 +1252,61 @@ bool HectorExplorationPlanner::findFrontiersCloseToPath(std::vector<geometry_msg
  * searches the occupancy grid for frontier cells and merges them into one target point per frontier.
  * The returned frontiers are in world coordinates.
  */
-bool HectorExplorationPlanner::findFrontiers(std::vector<geometry_msgs::PoseStamped> &frontiers, std::vector<geometry_msgs::PoseStamped> &noFrontiers){
+bool HectorExplorationPlanner::findFrontiers(std::vector<geometry_msgs::PoseStamped> &frontiers, std::vector<geometry_msgs::PoseStamped> &noFrontiers)
+{
 
-  // get latest costmap
-  clearFrontiers();
+    // get latest costmap
+    clearFrontiers();
 
-  // list of all frontiers in the occupancy grid
-  std::vector<int> allFrontiers;
+    // list of all frontiers in the occupancy grid
+    std::vector<int> allFrontiers;
 
-  // check for all cells in the occupancy grid whether or not they are frontier cells
-  for(unsigned int i = 0; i < num_map_cells_; ++i){
-    if(isFrontier(i)){
-      allFrontiers.push_back(i);
+    // check for all cells in the occupancy grid whether or not they are frontier cells
+    for (unsigned int i = 0; i < num_map_cells_; ++i)
+    {
+        if (isFrontier(i))
+        {
+            allFrontiers.push_back(i);
+        }
     }
-  }
 
-  for(unsigned int i = 0; i < allFrontiers.size(); ++i){
-    if(!isFrontierReached(allFrontiers[i])){
-      geometry_msgs::PoseStamped finalFrontier;
-      double wx,wy;
-      unsigned int mx,my;
-      costmap_->indexToCells(allFrontiers[i], mx, my);
-      costmap_->mapToWorld(mx,my,wx,wy);
-      std::string global_frame = costmap_ros_->getGlobalFrameID();
-      finalFrontier.header.frame_id = global_frame;
-      finalFrontier.pose.position.x = wx;
-      finalFrontier.pose.position.y = wy;
-      finalFrontier.pose.position.z = 0.0;
+    for (unsigned int i = 0; i < allFrontiers.size(); ++i)
+    {
+        if (!isFrontierReached(allFrontiers[i]))
+        {
+            geometry_msgs::PoseStamped finalFrontier;
+            double wx, wy;
+            unsigned int mx, my;
+            costmap_->indexToCells(allFrontiers[i], mx, my);
+            costmap_->mapToWorld(mx, my, wx, wy);
+            std::string global_frame = costmap_ros_->getGlobalFrameID();
+            finalFrontier.header.frame_id = global_frame;
+            finalFrontier.pose.position.x = wx;
+            finalFrontier.pose.position.y = wy;
+            finalFrontier.pose.position.z = 0.0;
 
-      double yaw = getYawToUnknown(costmap_->getIndex(mx,my));
+            double yaw = getYawToUnknown(costmap_->getIndex(mx, my));
 
-      //if(frontier_is_valid){
+            //if(frontier_is_valid){
 
-      finalFrontier.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
+            finalFrontier.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
 
-      frontiers.push_back(finalFrontier);
+            frontiers.push_back(finalFrontier);
+        }
+        //}
     }
-    //}
-  }
 
-  return (frontiers.size() > 0);
+    return (frontiers.size() > 0);
+}
 
+bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, std::vector<geometry_msgs::PoseStamped> &frontiers)
+{
+  std::vector<geometry_msgs::PoseStamped> empty_vec;
+  return clusterFrontiers(allFrontiers, frontiers, empty_vec);
+}
+
+bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, std::vector<geometry_msgs::PoseStamped> &frontiers, std::vector<geometry_msgs::PoseStamped> &noFrontiers)
+{
   //@TODO: Review and possibly remove unused code below
 
   // value of the next blob
@@ -1427,7 +1444,7 @@ bool HectorExplorationPlanner::findFrontiers(std::vector<geometry_msgs::PoseStam
       }
 
       marker.color.b = 0.0;
-      marker.lifetime = ros::Duration(5,0);
+      marker.lifetime = ros::Duration(50,0);
       visualization_pub_.publish(marker);
     }
 

@@ -120,6 +120,27 @@ private:
   bool isFrontierReached(int point);
   bool isSameFrontier(int frontier_point1,int frontier_point2);
 
+  /**
+   * @brief clusters frontiers into blobs
+   * @param allFrontiers vector of all frontier cells (input argument)
+   * @param frontiers same as the frontiers param of findFrontiers method (output argument)
+   * @return whether the frontiers is empty
+   */
+  bool clusterFrontiers(std::vector<int> &allFrontiers,
+                        std::vector<geometry_msgs::PoseStamped> &frontiers);
+
+
+  /**
+   * @brief clusters frontiers into blobs
+   * @param allFrontiers vector of all frontier cells (input argument)
+   * @param frontiers same as the frontiers param of findFrontiers method (output argument)
+   * @param noFrontiers same as the frontiers param of findFrontiers method (output argument)
+   * @return whether the frontiers is empty
+   */
+  bool clusterFrontiers(std::vector<int> &allFrontiers,
+                        std::vector<geometry_msgs::PoseStamped> &frontiers,
+                        std::vector<geometry_msgs::PoseStamped> &noFrontiers);
+
   void getStraightPoints(int point, int points[]);
   void getDiagonalPoints(int point, int points[]);
   void getAdjacentPoints(int point, int points[]);
