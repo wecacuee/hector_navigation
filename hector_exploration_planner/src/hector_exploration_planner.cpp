@@ -879,7 +879,9 @@ bool HectorExplorationPlanner::buildexploration_trans_array_(const geometry_msgs
       }
     }
 
-    ROS_DEBUG("[hector_exploration_planner] Goal init cost: %d, point: %d", exploration_trans_array_[goal_point], goal_point);
+    if (exploration_trans_array_[goal_point]) {
+      ROS_DEBUG("[hector_exploration_planner] Goal init cost: %d, point: %d", exploration_trans_array_[goal_point], goal_point);
+    }
     is_goal_array_[goal_point] = true;
     myqueue.push(goal_point);
   }
@@ -1425,6 +1427,9 @@ bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, 
       marker.ns = "hector_exploration_planner";
       marker.id = id++;
       marker.type = visualization_msgs::Marker::ARROW;
+      marker.action = visualization_msgs::Marker::DELETE;
+      visualization_pub_.publish(marker);
+
       marker.action = visualization_msgs::Marker::ADD;
       marker.pose.position.x = wx;
       marker.pose.position.y = wy;
@@ -1444,7 +1449,7 @@ bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, 
       }
 
       marker.color.b = 0.0;
-      marker.lifetime = ros::Duration(50,0);
+      marker.lifetime = ros::Duration(0); // (50,0);
       visualization_pub_.publish(marker);
     }
 
