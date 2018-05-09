@@ -24,6 +24,11 @@ find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
 add_definitions(${EIGEN_DEFINITIONS})
 
+find_package(PCL REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+target_link_libraries(${PCL_VISUALIZATION_LIBRARIES})
+add_definitions(${PCL_DEFINITIONS})
+
 generate_dynamic_reconfigure_options(
   cfg/ExplorationPlanner.cfg
 )
@@ -118,6 +123,7 @@ include_directories(
 # )
 add_library(${PROJECT_NAME} src/hector_exploration_planner.cpp)
 add_library(hector_exploration_base_global_planner_plugin src/hector_exploration_base_global_planner_plugin.cpp)
+add_library(hector_exploration_frontier_visualizer src/frontier_vis.cpp)
 
 ## Declare a cpp executable
 # add_executable(hector_exploration_planner_node src/hector_exploration_planner_node.cpp)
