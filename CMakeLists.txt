@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(hector_navigation)
+add_compile_options(-std=c++11)
 
 set(CMAKE_CONFIGURATION_TYPES Release Debug RelWithDebInfo)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")

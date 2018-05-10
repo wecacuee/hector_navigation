@@ -5,29 +5,37 @@
 #ifndef HECTOR_NAVIGATION_FRONTIER_VIS_H
 #define HECTOR_NAVIGATION_FRONTIER_VIS_H
 
+#include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <pcl/visualization/pcl_visualizer.h>
-#include <boost/shared_ptr.hpp>
+#include <image_transport/image_transport.h>
+#include <costmap_2d/costmap_2d.h>
+#include <costmap_2d/costmap_2d_ros.h>
+
+#include <opencv2/core/core.hpp>
 #include <boost/thread/mutex.hpp>
-#include <boost/thread.hpp>
+#include <boost/shared_ptr.hpp>
 
 namespace hector_exploration_planner
 {
 class FrontierVis
 {
 public:
-  FrontierVis();
-  void publishVisOnDemand(const std::vector<geometry_msgs::PoseStamped> frontiers);
-  void run();
+  FrontierVis(const std::string &topic_name);
+  void publishVisOnDemand(const std::vector<geometry_msgs::PoseStamped> &frontiers,
+                          const costmap_2d::Costmap2D& costmap,
+                          const costmap_2d::Costmap2DROS& costmap_ros);
+  static void drawPose(cv::Mat img, cv::Point, double yaw,
+                       cv::Scalar point_color, cv::Scalar normal_color);
+  static void drawPoint(cv::Mat img, cv::Point point, cv::Scalar color);
+
 
 protected:
-  boost::shared_ptr<pcl::visualization::PCLVisualizer> pcl_visualizer_;
-  boost::shared_ptr<boost::thread> thread_handler_;
   boost::mutex mutex_;
-  boost::atomic_bool update_cloud_;
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_;
-  pcl::PointCloud<pcl::Normal>::Ptr normals_;
+  ros::NodeHandle nh_;
+  image_transport::ImageTransport image_transport_;
+  image_transport::Publisher image_pub_;
+
 }; // class FrontierVis
 } // namespace hector_exploration_planner
 

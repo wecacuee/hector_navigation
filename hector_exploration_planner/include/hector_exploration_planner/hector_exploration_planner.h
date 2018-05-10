@@ -37,6 +37,7 @@
 #include <dynamic_reconfigure/server.h>
 
 #include <hector_exploration_planner/exploration_transform_vis.h>
+#include <hector_exploration_planner/frontier_vis.h>
 
 #include <boost/shared_array.hpp>
 
@@ -198,6 +199,8 @@ private:
   boost::shared_ptr<ExplorationTransformVis> close_path_vis_;
   boost::shared_ptr<ExplorationTransformVis> inner_vis_;
   boost::shared_ptr<ExplorationTransformVis> obstacle_vis_;
+
+  boost::shared_ptr<FrontierVis> frontier_vis_;
 
 };
 }

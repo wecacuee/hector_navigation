@@ -102,6 +102,7 @@ void HectorExplorationPlanner::initialize(std::string name, costmap_2d::Costmap2
   close_path_vis_.reset(new ExplorationTransformVis("close_path_exploration_transform"));
   inner_vis_.reset(new ExplorationTransformVis("inner_exploration_transform"));
   obstacle_vis_.reset(new ExplorationTransformVis("obstacle_transform"));
+  frontier_vis_.reset(new FrontierVis("frontier_img"));
 }
 
 void HectorExplorationPlanner::dynRecParamCallback(hector_exploration_planner::ExplorationPlannerConfig &config, uint32_t level)
@@ -261,7 +262,7 @@ bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &s
     previous_goal_ = costmap_->getIndex(mx,my);
   }
 
-
+  frontier_vis_->publishVisOnDemand(goals, *costmap_, *costmap_ros_);
   ROS_INFO("[hector_exploration_planner] exploration: plan to a frontier has been found! plansize: %u", (unsigned int)plan.size());
   return true;
 }
