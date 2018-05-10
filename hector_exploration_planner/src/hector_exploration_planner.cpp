@@ -80,7 +80,7 @@ void HectorExplorationPlanner::initialize(std::string name, costmap_2d::Costmap2
   // initialize parameters
   ros::NodeHandle private_nh_("~/" + name);
   ros::NodeHandle nh;
-  visualization_pub_ = private_nh_.advertise<visualization_msgs::Marker>("visualization_marker", 1);
+  visualization_pub_ = private_nh_.advertise<visualization_msgs::MarkerArray>("visualization_marker", 1);
 
   observation_pose_pub_ = private_nh_.advertise<geometry_msgs::PoseStamped>("observation_pose", 1, true);
   goal_pose_pub_ = private_nh_.advertise<geometry_msgs::PoseStamped>("goal_pose", 1, true);
@@ -241,7 +241,7 @@ void HectorExplorationPlanner::updateFrontiers()
   }
 
   if (is_frontiers_found_) {
-    frontier_vis_->publishVisOnDemand(frontiers_, *costmap_, *costmap_ros_);
+    frontier_vis_->publishVisOnDemand(frontiers_, clustered_frontiers_, *costmap_, *costmap_ros_);
   }
 }
 
@@ -1268,8 +1268,8 @@ bool HectorExplorationPlanner::findFrontiersCloseToPath(std::vector<geometry_msg
     //}
   }
 
-  std::vector<geometry_msgs::PoseStamped> dummyFrontiers;
-  clusterFrontiers(allFrontiers, dummyFrontiers);
+  clustered_frontiers_.clear();
+  clusterFrontiers(allFrontiers, clustered_frontiers_);
 
   return (frontiers.size() > 0);
 }
@@ -1323,6 +1323,12 @@ bool HectorExplorationPlanner::findFrontiers(std::vector<geometry_msgs::PoseStam
     }
 
     return (frontiers.size() > 0);
+}
+
+bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers)
+{
+  std::vector<geometry_msgs::PoseStamped> dummy_frontiers;
+  return clusterFrontiers(allFrontiers, dummy_frontiers);
 }
 
 bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, std::vector<geometry_msgs::PoseStamped> &frontiers)
@@ -1381,9 +1387,20 @@ bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, 
     }
   }
 
+  static visualization_msgs::MarkerArray markers;
   int id = 1;
 
   bool visualization_requested = (visualization_pub_.getNumSubscribers() > 0);
+  if (visualization_requested)
+  {
+    // clear all the old markers
+    for (auto &marker: markers.markers) {
+      marker.action = visualization_msgs::Marker::DELETE;
+    }
+  }
+
+  visualization_pub_.publish(markers);
+  markers.markers.clear();
 
   // summarize every blob into a single point (maximum obstacle_trans_array_ value)
   for(std::list<int>::iterator currentBlob = usedBlobs.begin(); currentBlob != usedBlobs.end(); ++currentBlob){
@@ -1443,7 +1460,7 @@ bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, 
       frontiers.push_back(finalFrontier);
     }
 
-    // visualization (export to method?)
+
     if(visualization_requested){
       visualization_msgs::Marker marker;
       marker.header.frame_id = "map";
@@ -1474,9 +1491,14 @@ bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, 
 
       marker.color.b = 0.0;
       marker.lifetime = ros::Duration(0); // (50,0);
-      visualization_pub_.publish(marker);
+      markers.markers.push_back(marker);
     }
 
+  }
+
+  if (visualization_requested)
+  {
+    visualization_pub_.publish(markers);
   }
   return !frontiers.empty();
 }

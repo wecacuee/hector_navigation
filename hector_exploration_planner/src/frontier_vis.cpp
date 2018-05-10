@@ -42,6 +42,7 @@ void FrontierVis::drawPoint(cv::Mat img, cv::Point point, cv::Scalar color)
 }
 
 void FrontierVis::publishVisOnDemand(const std::vector<geometry_msgs::PoseStamped> &frontiers,
+                                     const std::vector<geometry_msgs::PoseStamped> &clustered_frontiers,
                                      const costmap_2d::Costmap2D& costmap,
                                      const costmap_2d::Costmap2DROS& costmap_ros)
 {
@@ -63,6 +64,15 @@ void FrontierVis::publishVisOnDemand(const std::vector<geometry_msgs::PoseStampe
     costmap.worldToMap(frontier.pose.position.x, frontier.pose.position.y, map_x, map_y);
     cv::Point frontier_point(map_x, map_y);
     drawPoint(map, frontier_point, cv::Scalar(0, 0, 255));
+  }
+
+  for (const auto &frontier: clustered_frontiers) {
+    unsigned int map_x;
+    unsigned int map_y;
+    costmap.worldToMap(frontier.pose.position.x, frontier.pose.position.y, map_x, map_y);
+    cv::Point frontier_point(map_x, map_y);
+//    drawPose(map, frontier_point, tf::getYaw(frontier.pose.orientation), cv::Scalar(255, 0, 0), cv::Scalar(0, 255, 0));
+    drawPoint(map, frontier_point, cv::Scalar(255, 0, 0));
   }
 
   cv::Mat map_flipped;

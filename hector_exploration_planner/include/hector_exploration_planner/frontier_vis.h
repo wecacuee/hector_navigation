@@ -22,6 +22,7 @@ class FrontierVis
 public:
   FrontierVis(const std::string &topic_name);
   void publishVisOnDemand(const std::vector<geometry_msgs::PoseStamped> &frontiers,
+                          const std::vector<geometry_msgs::PoseStamped> &clustered_frontiers,
                           const costmap_2d::Costmap2D& costmap,
                           const costmap_2d::Costmap2DROS& costmap_ros);
   static void drawPose(cv::Mat img, cv::Point, double yaw,

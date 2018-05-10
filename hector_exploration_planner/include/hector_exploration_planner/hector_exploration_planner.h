@@ -129,6 +129,13 @@ private:
   /**
    * @brief clusters frontiers into blobs
    * @param allFrontiers vector of all frontier cells (input argument)
+   * @return whether the frontiers is empty
+   */
+  bool clusterFrontiers(std::vector<int> &allFrontiers);
+
+  /**
+   * @brief clusters frontiers into blobs
+   * @param allFrontiers vector of all frontier cells (input argument)
    * @param frontiers same as the frontiers param of findFrontiers method (output argument)
    * @return whether the frontiers is empty
    */
@@ -208,6 +215,7 @@ private:
   boost::shared_ptr<FrontierVis> frontier_vis_;
 
   std::vector<geometry_msgs::PoseStamped> frontiers_;
+  std::vector<geometry_msgs::PoseStamped> clustered_frontiers_;
   boost::atomic_bool is_frontiers_found_;
   boost::mutex frontiers_mutex_;
 
