@@ -57,7 +57,7 @@ HectorExplorationPlanner::~HectorExplorationPlanner(){
 }
 
 HectorExplorationPlanner::HectorExplorationPlanner(std::string name, costmap_2d::Costmap2DROS *costmap_ros_in) :
-costmap_ros_(NULL), initialized_(false) {
+costmap_ros_(NULL), initialized_(false), is_frontiers_found_(false) {
   HectorExplorationPlanner::initialize(name, costmap_ros_in);
 }
 
@@ -103,6 +103,16 @@ void HectorExplorationPlanner::initialize(std::string name, costmap_2d::Costmap2
   inner_vis_.reset(new ExplorationTransformVis("inner_exploration_transform"));
   obstacle_vis_.reset(new ExplorationTransformVis("obstacle_transform"));
   frontier_vis_.reset(new FrontierVis("frontier_img"));
+
+  frontiers_thread_.reset(
+    new boost::thread([this]() {
+      while (ros::ok()) {
+        updateFrontiers();
+        ros::Duration(0.5).sleep();
+      }
+    })
+  );
+  frontiers_thread_->detach();
 }
 
 void HectorExplorationPlanner::dynRecParamCallback(hector_exploration_planner::ExplorationPlannerConfig &config, uint32_t level)
@@ -201,38 +211,52 @@ bool HectorExplorationPlanner::makePlan(const geometry_msgs::PoseStamped &start,
   return true;
 }
 
-bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> &plan){
+void HectorExplorationPlanner::updateFrontiers()
+{
+  boost::mutex::scoped_lock(frontiers_mutex_);
 
-
+  is_frontiers_found_ = false;
+  frontiers_.clear();
 
   this->setupMapData();
 
   // setup maps and goals
-
   resetMaps();
   clearFrontiers();
-  plan.clear();
-
-  std::vector<geometry_msgs::PoseStamped> goals;
 
   // create obstacle tranform
   buildobstacle_trans_array_(p_use_inflated_obs_);
 
+  if (p_explore_close_to_path_) {
 
-  bool frontiers_found = false;
+    is_frontiers_found_ = findFrontiersCloseToPath(frontiers_);
 
-  if (p_explore_close_to_path_){
-
-    frontiers_found = findFrontiersCloseToPath(goals);
-
-    if (!frontiers_found){
+    if (!is_frontiers_found_){
       ROS_WARN("Close Exploration desired, but no frontiers found. Falling back to normal exploration!");
-      frontiers_found = findFrontiers(goals);
+      is_frontiers_found_ = findFrontiers(frontiers_);
     }
 
-  }else{
-    frontiers_found = findFrontiers(goals);
+  } else {
+    is_frontiers_found_ = findFrontiers(frontiers_);
   }
+
+  if (is_frontiers_found_) {
+    frontier_vis_->publishVisOnDemand(frontiers_, *costmap_, *costmap_ros_);
+  }
+}
+
+bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> &plan)
+{
+  std::vector<geometry_msgs::PoseStamped> goals;
+
+  updateFrontiers();
+  {
+    boost::mutex::scoped_lock(frontiers_mutex_);
+    goals = frontiers_;
+  }
+
+  plan.clear();
+  bool frontiers_found = is_frontiers_found_;
 
   // search for frontiers
   if(frontiers_found){
@@ -262,7 +286,6 @@ bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &s
     previous_goal_ = costmap_->getIndex(mx,my);
   }
 
-  frontier_vis_->publishVisOnDemand(goals, *costmap_, *costmap_ros_);
   ROS_INFO("[hector_exploration_planner] exploration: plan to a frontier has been found! plansize: %u", (unsigned int)plan.size());
   return true;
 }

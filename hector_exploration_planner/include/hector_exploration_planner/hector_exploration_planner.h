@@ -39,7 +39,10 @@
 #include <hector_exploration_planner/exploration_transform_vis.h>
 #include <hector_exploration_planner/frontier_vis.h>
 
-#include <boost/shared_array.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/thread.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/atomic.hpp>
 
 namespace hector_exploration_planner{
 
@@ -85,6 +88,8 @@ public:
   bool findFrontiersCloseToPath(std::vector<geometry_msgs::PoseStamped> &frontiers);
   bool findFrontiers(std::vector<geometry_msgs::PoseStamped> &frontiers);
   bool findInnerFrontier(std::vector<geometry_msgs::PoseStamped> &innerFrontier);
+
+  void updateFrontiers();
   
   float angleDifferenceWall(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
   bool exploreWalls(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> &goals);
@@ -201,6 +206,12 @@ private:
   boost::shared_ptr<ExplorationTransformVis> obstacle_vis_;
 
   boost::shared_ptr<FrontierVis> frontier_vis_;
+
+  std::vector<geometry_msgs::PoseStamped> frontiers_;
+  boost::atomic_bool is_frontiers_found_;
+  boost::mutex frontiers_mutex_;
+
+  boost::shared_ptr<boost::thread> frontiers_thread_;
 
 };
 }

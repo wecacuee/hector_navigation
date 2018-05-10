@@ -30,7 +30,7 @@ void FrontierVis::drawPose(cv::Mat img, cv::Point point, double yaw,
   drawPoint(img, point, point_color);
   cv::Point normal_end(
     point.x + std::cos(yaw) * NORMAL_LENGTH,
-    point.y + std::cos(yaw) * NORMAL_LENGTH
+    point.y + std::sin(yaw) * NORMAL_LENGTH
   );
 
   cv::line(img, point, normal_end, normal_color);
@@ -61,7 +61,7 @@ void FrontierVis::publishVisOnDemand(const std::vector<geometry_msgs::PoseStampe
     unsigned int map_x;
     unsigned int map_y;
     costmap.worldToMap(frontier.pose.position.x, frontier.pose.position.y, map_x, map_y);
-    cv::Point frontier_point(map_y, map_x);
+    cv::Point frontier_point(map_x, map_y);
     drawPoint(map, frontier_point, cv::Scalar(0, 0, 255));
   }
 
