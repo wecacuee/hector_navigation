@@ -13,7 +13,7 @@
 
 #include <opencv2/core/core.hpp>
 #include <boost/thread/mutex.hpp>
-#include <boost/shared_ptr.hpp>
+#include <boost/shared_array.hpp>
 
 namespace hector_exploration_planner
 {
@@ -23,11 +23,13 @@ public:
   FrontierVis(const std::string &topic_name);
   void publishVisOnDemand(const std::vector<geometry_msgs::PoseStamped> &frontiers,
                           const std::vector<geometry_msgs::PoseStamped> &clustered_frontiers,
+                          cv::Mat exploration_transform,
                           const costmap_2d::Costmap2D& costmap,
                           const costmap_2d::Costmap2DROS& costmap_ros);
   static void drawPose(cv::Mat img, cv::Point, double yaw,
                        cv::Scalar point_color, cv::Scalar normal_color);
   static void drawPoint(cv::Mat img, cv::Point point, cv::Scalar color);
+
 
 
 protected:

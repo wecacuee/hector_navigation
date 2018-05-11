@@ -241,7 +241,7 @@ void HectorExplorationPlanner::updateFrontiers()
   }
 
   if (is_frontiers_found_) {
-    frontier_vis_->publishVisOnDemand(frontiers_, clustered_frontiers_, *costmap_, *costmap_ros_);
+    frontier_vis_->publishVisOnDemand(frontiers_, clustered_frontiers_, exploration_trans_img_, *costmap_, *costmap_ros_);
   }
 }
 
@@ -252,7 +252,9 @@ bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &s
   updateFrontiers();
   {
     boost::mutex::scoped_lock(frontiers_mutex_);
-    goals = frontiers_;
+    if (!frontiers_.empty()) {
+      goals = frontiers_;
+    }
   }
 
   plan.clear();
@@ -986,8 +988,39 @@ bool HectorExplorationPlanner::buildexploration_trans_array_(const geometry_msgs
 
   ROS_DEBUG("[hector_exploration_planner] END: buildexploration_trans_array_");
 
+  drawExplorationTransform(exploration_trans_array_, *costmap_, exploration_trans_img_);
   vis_->publishVisOnDemand(*costmap_, exploration_trans_array_.get());
   return true;
+}
+
+void HectorExplorationPlanner::drawExplorationTransform(const boost::shared_array<unsigned int> exploration_array,
+                                                        const costmap_2d::Costmap2D& costmap,
+                                                        cv::Mat &img)
+{
+  unsigned int size_x = costmap.getSizeInCellsX();
+  unsigned int size_y = costmap.getSizeInCellsY();
+  unsigned int size = size_x * size_y;
+
+  img = cv::Mat(size_y, size_x, CV_8UC1);
+
+  unsigned int max = 0;
+
+  for (size_t i = 0; i < size; ++i) {
+    if ((exploration_array[i] < INT_MAX)){
+      if (exploration_array[i] > 1000) {
+        exploration_array[i] = 1000;
+      }
+      if (exploration_array[i] > max) {
+        max = exploration_array[i];
+      }
+    }
+  }
+
+  for (size_t i = 0; i < size; ++i) {
+    if (exploration_array[i] < INT_MAX) {
+      img.data[i] = static_cast<uint8_t>(static_cast<float>(exploration_array[i]) / max * 255);
+    }
+  }
 }
 
 bool HectorExplorationPlanner::buildobstacle_trans_array_(bool use_inflated_obstacles){

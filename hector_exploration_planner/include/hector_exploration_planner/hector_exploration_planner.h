@@ -44,6 +44,8 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/atomic.hpp>
 
+#include <opencv2/core/core.hpp>
+
 namespace hector_exploration_planner{
 
 class ExplorationPlannerConfig;
@@ -179,6 +181,11 @@ private:
   boost::shared_array<unsigned int> obstacle_trans_array_;
   boost::shared_array<int> frontier_map_array_;
   boost::shared_array<bool> is_goal_array_;
+
+  cv::Mat exploration_trans_img_;
+  static void drawExplorationTransform(const boost::shared_array<unsigned int> exploration_transform_array,
+                                       const costmap_2d::Costmap2D& costmap,
+                                       cv::Mat &img);
 
   bool initialized_;
   int previous_goal_;
