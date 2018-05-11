@@ -60,23 +60,23 @@ void FrontierVis::publishVisOnDemand(const std::vector<geometry_msgs::PoseStampe
   drawPose(map, cv::Point(robot_map_x, robot_map_y), tf::getYaw(robot_pose.getRotation()), cv::Scalar(255, 255, 255), cv::Scalar(255, 255, 255));
 
   // ------------------ raw frontiers ------------------//
-//  for (const auto &frontier: frontiers) {
-//    unsigned int map_x;
-//    unsigned int map_y;
-//    costmap.worldToMap(frontier.pose.position.x, frontier.pose.position.y, map_x, map_y);
-//    cv::Point frontier_point(map_x, map_y);
-//    drawPoint(map, frontier_point, cv::Scalar(0, 0, 255));
-//  }
-//
-//  // ------------------ clustered frontiers ------------------//
-//  for (const auto &frontier: clustered_frontiers) {
-//    unsigned int map_x;
-//    unsigned int map_y;
-//    costmap.worldToMap(frontier.pose.position.x, frontier.pose.position.y, map_x, map_y);
-//    cv::Point frontier_point(map_x, map_y);
-////    drawPose(map, frontier_point, tf::getYaw(frontier.pose.orientation), cv::Scalar(255, 0, 0), cv::Scalar(0, 255, 0));
-//    drawPoint(map, frontier_point, cv::Scalar(255, 0, 0));
-//  }
+  for (const auto &frontier: frontiers) {
+    unsigned int map_x;
+    unsigned int map_y;
+    costmap.worldToMap(frontier.pose.position.x, frontier.pose.position.y, map_x, map_y);
+    cv::Point frontier_point(map_x, map_y);
+    drawPoint(map, frontier_point, cv::Scalar(0, 0, 255));
+  }
+
+  // ------------------ clustered frontiers ------------------//
+  for (const auto &frontier: clustered_frontiers) {
+    unsigned int map_x;
+    unsigned int map_y;
+    costmap.worldToMap(frontier.pose.position.x, frontier.pose.position.y, map_x, map_y);
+    cv::Point frontier_point(map_x, map_y);
+//    drawPose(map, frontier_point, tf::getYaw(frontier.pose.orientation), cv::Scalar(255, 0, 0), cv::Scalar(0, 255, 0));
+    drawPoint(map, frontier_point, cv::Scalar(255, 0, 0));
+  }
 
   // ------------------ exploration transform ------------------//
   if (!exploration_transform.empty()) {

@@ -1004,21 +1004,27 @@ void HectorExplorationPlanner::drawExplorationTransform(const boost::shared_arra
   img = cv::Mat(size_y, size_x, CV_8UC1);
 
   unsigned int max = 0;
+#define MAX_TRANSFORM 10000
 
   for (size_t i = 0; i < size; ++i) {
-    if ((exploration_array[i] < INT_MAX)){
-      if (exploration_array[i] > 1000) {
-        exploration_array[i] = 1000;
-      }
-      if (exploration_array[i] > max) {
-        max = exploration_array[i];
-      }
+    if ((exploration_array[i] < INT_MAX) && (exploration_array[i] > max)) {
+      max = exploration_array[i];
+    }
+    if (max > MAX_TRANSFORM) {
+      max = MAX_TRANSFORM;
+      break;
     }
   }
 
   for (size_t i = 0; i < size; ++i) {
     if (exploration_array[i] < INT_MAX) {
-      img.data[i] = static_cast<uint8_t>(static_cast<float>(exploration_array[i]) / max * 255);
+      unsigned int transform = exploration_array[i];
+      if (transform > MAX_TRANSFORM) {
+        transform = MAX_TRANSFORM;
+      }
+      img.data[i] = static_cast<uint8_t>(static_cast<float>(transform) / max * 255);
+    } else {
+      img.data[i] = 255;
     }
   }
 }
