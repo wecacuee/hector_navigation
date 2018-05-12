@@ -152,6 +152,10 @@ private:
   int downright(int point);
   int down(int point);
   int downleft(int point);
+  // construct a PoseStamped structure from int index
+  bool constructFrontier(int point, geometry_msgs::PoseStamped& frontier);
+  bool findFrontiers_index(std::vector<int>& frontiers);
+
 
   ros::Publisher observation_pose_pub_;
   ros::Publisher goal_pose_pub_;

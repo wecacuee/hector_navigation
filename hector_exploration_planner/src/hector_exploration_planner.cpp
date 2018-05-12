@@ -1095,6 +1095,44 @@ bool HectorExplorationPlanner::getTrajectory(const geometry_msgs::PoseStamped &s
   return !plan.empty();
 }
 
+bool HectorExplorationPlanner::constructFrontier(int point, geometry_msgs::PoseStamped& frontier)
+{
+  if(this->isValid(point))
+  {
+    double wx, wy;
+    unsigned int mx, my;
+    costmap_->indexToCells(point, mx, my);
+    costmap_->mapToWorld(mx, my, wx, wy);
+    std::string global_frame = costmap_ros_->getGlobalFrameID();
+    frontier.header.frame_id = global_frame;
+    frontier.pose.position.x = wx;
+    frontier.pose.position.y = wy;
+    frontier.pose.position.z = 0.0;
+
+    double yaw = getYawToUnknown(costmap_->getIndex(mx, my));
+
+    frontier.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
+    return true;
+  }
+  return false;
+}
+
+bool HectorExplorationPlanner::findFrontiers_index(std::vector<int>& frontiers)
+{
+  // get latest costmap
+  clearFrontiers();
+  // check for all cells in the occupancy grid whether or not they are frontier cells
+  for (unsigned int i = 0; i < num_map_cells_; ++i)
+  {
+    if (isFrontier(i) && !isFrontierReached(i))
+    {
+      frontiers.push_back(i);
+    }
+  }
+
+  return (frontiers.size() > 0);
+}
+
 bool HectorExplorationPlanner::findFrontiers(std::vector<geometry_msgs::PoseStamped> &frontiers){
   std::vector<geometry_msgs::PoseStamped> empty_vec;
   return findFrontiers(frontiers,empty_vec);
@@ -1254,7 +1292,6 @@ bool HectorExplorationPlanner::findFrontiersCloseToPath(std::vector<geometry_msg
  */
 bool HectorExplorationPlanner::findFrontiers(std::vector<geometry_msgs::PoseStamped> &frontiers, std::vector<geometry_msgs::PoseStamped> &noFrontiers)
 {
-
     // get latest costmap
     clearFrontiers();
 
@@ -1270,27 +1307,13 @@ bool HectorExplorationPlanner::findFrontiers(std::vector<geometry_msgs::PoseStam
         }
     }
 
+    // judge if the Frontier is reached (near the target point) or not, if not, construct frontiers using poseStamped
     for (unsigned int i = 0; i < allFrontiers.size(); ++i)
     {
         if (!isFrontierReached(allFrontiers[i]))
         {
             geometry_msgs::PoseStamped finalFrontier;
-            double wx, wy;
-            unsigned int mx, my;
-            costmap_->indexToCells(allFrontiers[i], mx, my);
-            costmap_->mapToWorld(mx, my, wx, wy);
-            std::string global_frame = costmap_ros_->getGlobalFrameID();
-            finalFrontier.header.frame_id = global_frame;
-            finalFrontier.pose.position.x = wx;
-            finalFrontier.pose.position.y = wy;
-            finalFrontier.pose.position.z = 0.0;
-
-            double yaw = getYawToUnknown(costmap_->getIndex(mx, my));
-
-            //if(frontier_is_valid){
-
-            finalFrontier.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
-
+            this->constructFrontier(allFrontiers[i], finalFrontier);
             frontiers.push_back(finalFrontier);
         }
         //}
