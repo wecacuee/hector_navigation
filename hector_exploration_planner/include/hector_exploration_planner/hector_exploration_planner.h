@@ -37,8 +37,14 @@
 #include <dynamic_reconfigure/server.h>
 
 #include <hector_exploration_planner/exploration_transform_vis.h>
+#include <hector_exploration_planner/frontier_vis.h>
 
-#include <boost/shared_array.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/thread.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/atomic.hpp>
+
+#include <opencv2/core/core.hpp>
 
 namespace hector_exploration_planner{
 
@@ -84,6 +90,8 @@ public:
   bool findFrontiersCloseToPath(std::vector<geometry_msgs::PoseStamped> &frontiers);
   bool findFrontiers(std::vector<geometry_msgs::PoseStamped> &frontiers);
   bool findInnerFrontier(std::vector<geometry_msgs::PoseStamped> &innerFrontier);
+
+  void updateFrontiers();
   
   float angleDifferenceWall(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
   bool exploreWalls(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> &goals);
@@ -119,6 +127,13 @@ private:
   double getYawToUnknown(int point);
   bool isFrontierReached(int point);
   bool isSameFrontier(int frontier_point1,int frontier_point2);
+
+  /**
+   * @brief clusters frontiers into blobs
+   * @param allFrontiers vector of all frontier cells (input argument)
+   * @return whether the frontiers is empty
+   */
+  bool clusterFrontiers(std::vector<int> &allFrontiers);
 
   /**
    * @brief clusters frontiers into blobs
@@ -171,6 +186,11 @@ private:
   boost::shared_array<int> frontier_map_array_;
   boost::shared_array<bool> is_goal_array_;
 
+  cv::Mat exploration_trans_img_;
+  static void drawExplorationTransform(const boost::shared_array<unsigned int> exploration_transform_array,
+                                       const costmap_2d::Costmap2D& costmap,
+                                       cv::Mat &img);
+
   bool initialized_;
   int previous_goal_;
 
@@ -202,6 +222,15 @@ private:
   boost::shared_ptr<ExplorationTransformVis> close_path_vis_;
   boost::shared_ptr<ExplorationTransformVis> inner_vis_;
   boost::shared_ptr<ExplorationTransformVis> obstacle_vis_;
+
+  boost::shared_ptr<FrontierVis> frontier_vis_;
+
+  std::vector<geometry_msgs::PoseStamped> frontiers_;
+  std::vector<geometry_msgs::PoseStamped> clustered_frontiers_;
+  boost::atomic_bool is_frontiers_found_;
+  boost::mutex frontiers_mutex_;
+
+  boost::shared_ptr<boost::thread> frontiers_thread_;
 
 };
 }

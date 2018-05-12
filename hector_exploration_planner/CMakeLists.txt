@@ -16,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   rosconsole
   roscpp
   rospy
+  image_transport
+  cv_bridge
 )
 
 ## System dependencies are found with CMake's conventions
@@ -23,6 +25,8 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen REQUIRED)
 include_directories(${EIGEN_INCLUDE_DIRS})
 add_definitions(${EIGEN_DEFINITIONS})
+
+find_package(OpenCV)
 
 generate_dynamic_reconfigure_options(
   cfg/ExplorationPlanner.cfg
@@ -96,7 +100,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES hector_exploration_base_global_planner_plugin ${PROJECT_NAME}
-  CATKIN_DEPENDS costmap_2d dynamic_reconfigure geometry_msgs hector_nav_msgs nav_core nav_msgs pluginlib rosconsole roscpp rospy
+  CATKIN_DEPENDS costmap_2d dynamic_reconfigure geometry_msgs hector_nav_msgs nav_core nav_msgs pluginlib rosconsole roscpp rospy image_transport cv_bridge
 #  DEPENDS system_lib
 )
 
@@ -116,7 +120,7 @@ include_directories(
 # add_library(hector_exploration_planner
 #   src/${PROJECT_NAME}/hector_exploration_planner.cpp
 # )
-add_library(${PROJECT_NAME} src/hector_exploration_planner.cpp)
+add_library(${PROJECT_NAME} src/hector_exploration_planner.cpp src/frontier_vis.cpp)
 add_library(hector_exploration_base_global_planner_plugin src/hector_exploration_base_global_planner_plugin.cpp)
 
 ## Declare a cpp executable
