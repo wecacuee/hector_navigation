@@ -241,7 +241,7 @@ void HectorExplorationPlanner::updateFrontiers()
   }
 
   if (is_frontiers_found_) {
-    frontier_vis_->publishVisOnDemand(frontiers_img_, clustered_frontiers_, exploration_trans_img_, *costmap_, *costmap_ros_);
+    frontier_vis_->publishVisOnDemand(frontiers_img_, clustered_frontier_points_, exploration_trans_img_, *costmap_, *costmap_ros_);
   }
 }
 
@@ -1375,10 +1375,13 @@ bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers)
 bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, std::vector<geometry_msgs::PoseStamped> &frontiers)
 {
   std::vector<geometry_msgs::PoseStamped> empty_vec;
-  return clusterFrontiers(allFrontiers, frontiers, empty_vec);
+  return clusterFrontiers(allFrontiers, frontiers, empty_vec, clustered_frontier_points_);
 }
 
-bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, std::vector<geometry_msgs::PoseStamped> &frontiers, std::vector<geometry_msgs::PoseStamped> &noFrontiers)
+bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers,
+                                                std::vector<geometry_msgs::PoseStamped> &frontiers,
+                                                std::vector<geometry_msgs::PoseStamped> &noFrontiers,
+                                                std::vector<cv::Point> frontierPoints)
 {
   //@TODO: Review and possibly remove unused code below
 
@@ -1499,6 +1502,7 @@ bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, 
 
       finalFrontier.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
       frontiers.push_back(finalFrontier);
+      frontierPoints.push_back(cv::Point(x,  y));
     }
 
 

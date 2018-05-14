@@ -120,7 +120,12 @@ include_directories(
 # add_library(hector_exploration_planner
 #   src/${PROJECT_NAME}/hector_exploration_planner.cpp
 # )
-add_library(${PROJECT_NAME} src/hector_exploration_planner.cpp src/frontier_vis.cpp)
+add_library(
+        ${PROJECT_NAME}
+        src/hector_exploration_planner.cpp
+        src/frontier_vis.cpp
+        src/frontier_analysis.cpp
+)
 add_library(hector_exploration_base_global_planner_plugin src/hector_exploration_base_global_planner_plugin.cpp)
 
 ## Declare a cpp executable

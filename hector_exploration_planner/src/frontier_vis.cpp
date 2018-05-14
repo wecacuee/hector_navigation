@@ -4,8 +4,11 @@
 #define NORMAL_LENGTH 50
 
 #include <hector_exploration_planner/frontier_vis.h>
+#include <hector_exploration_planner/frontier_analysis.h>
+
 #include <sensor_msgs/Image.h>
 #include <tf/tf.h>
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
@@ -42,7 +45,7 @@ void FrontierVis::drawPoint(cv::Mat img, cv::Point point, cv::Scalar color)
 }
 
 void FrontierVis::publishVisOnDemand(cv::Mat frontiers_img,
-                                     const std::vector<geometry_msgs::PoseStamped> &clustered_frontiers,
+                                     const std::vector<cv::Point> &clustered_frontiers,
                                      cv::Mat exploration_transform,
                                      const costmap_2d::Costmap2D& costmap,
                                      const costmap_2d::Costmap2DROS& costmap_ros)
@@ -50,32 +53,39 @@ void FrontierVis::publishVisOnDemand(cv::Mat frontiers_img,
   boost::lock_guard<boost::mutex> guard(mutex_);
 
   cv::Mat map(costmap.getSizeInCellsY(), costmap.getSizeInCellsY(), CV_8UC3, cv::Scalar(0, 0, 0));
+  cv::RNG rng;
+
+  cv::Mat preprocessed_frontier_img;
+  frontier_analysis::preprocessFrontierImg(frontiers_img, preprocessed_frontier_img);
+  frontier_analysis::colorFrontiers(
+    frontiers_img,
+    frontier_analysis::groupFrontiers(preprocessed_frontier_img, clustered_frontiers),
+    rng,
+    map
+  );
 
   // ------------------ raw frontiers ------------------//
-  if (frontiers_img.size == map.size) {
-    cv::Mat channels[3];
-    cv::split(map, channels);
-    channels[2] = frontiers_img;
-    cv::merge(channels, 3, map);
-  }
-
-  // ------------------ clustered frontiers ------------------//
-  for (const auto &frontier: clustered_frontiers) {
-    unsigned int map_x;
-    unsigned int map_y;
-    costmap.worldToMap(frontier.pose.position.x, frontier.pose.position.y, map_x, map_y);
-    cv::Point frontier_point(map_x, map_y);
-//    drawPose(map, frontier_point, tf::getYaw(frontier.pose.orientation), cv::Scalar(255, 0, 0), cv::Scalar(0, 255, 0));
-    drawPoint(map, frontier_point, cv::Scalar(255, 0, 0));
-  }
-
-  // ------------------ exploration transform ------------------//
-  if (exploration_transform.cols == map.cols && exploration_transform.rows == map.rows) {
-    cv::Mat channels[3];
-    cv::split(map, channels);
-    channels[1] = exploration_transform;
-    cv::merge(channels, 3, map);
-  }
+//  if (frontiers_img.size == map.size) {
+//    cv::Mat channels[3];
+//    cv::split(map, channels);
+//    channels[2] = preprocessed_frontier_img; // frontiers_img;
+////    channels[1] = frontiers_img;
+//    cv::merge(channels, 3, map);
+//  }
+//
+//  // ------------------ clustered frontiers ------------------//
+//  for (const auto &frontier: clustered_frontiers) {
+////    drawPose(map, frontier, tf::getYaw(frontier.pose.orientation), cv::Scalar(255, 0, 0), cv::Scalar(0, 255, 0));
+//    drawPoint(map, frontier, cv::Scalar(255, 0, 0));
+//  }
+//
+//  // ------------------ exploration transform ------------------//
+//  if (exploration_transform.cols == map.cols && exploration_transform.rows == map.rows) {
+//    cv::Mat channels[3];
+//    cv::split(map, channels);
+//    channels[1] = exploration_transform;
+//    cv::merge(channels, 3, map);
+//  }
 
   // ------------------ robot pose ------------------//
   tf::Stamped<tf::Pose> robot_pose;

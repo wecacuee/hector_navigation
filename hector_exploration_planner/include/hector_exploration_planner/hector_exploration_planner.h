@@ -150,11 +150,13 @@ private:
    * @param allFrontiers vector of all frontier cells (input argument)
    * @param frontiers same as the frontiers param of findFrontiers method (output argument)
    * @param noFrontiers same as the frontiers param of findFrontiers method (output argument)
+   * @param frontierPoints frontiers in map (image) coordinates
    * @return whether the frontiers is empty
    */
   bool clusterFrontiers(std::vector<int> &allFrontiers,
                         std::vector<geometry_msgs::PoseStamped> &frontiers,
-                        std::vector<geometry_msgs::PoseStamped> &noFrontiers);
+                        std::vector<geometry_msgs::PoseStamped> &noFrontiers,
+                        std::vector<cv::Point> frontierPoints);
 
   void getStraightPoints(int point, int points[]);
   void getDiagonalPoints(int point, int points[]);
@@ -222,7 +224,8 @@ private:
   boost::shared_ptr<FrontierVis> frontier_vis_;
 
   std::vector<geometry_msgs::PoseStamped> frontiers_;
-  std::vector<geometry_msgs::PoseStamped> clustered_frontiers_;
+  std::vector<geometry_msgs::PoseStamped> clustered_frontiers_; ///< clustered frontiers in world coordinates
+  std::vector<cv::Point> clustered_frontier_points_; ///< clustered frontiers in map (image) coordinates
   boost::atomic_bool is_frontiers_found_;
   boost::mutex frontiers_mutex_;
   cv::Mat frontiers_img_;
