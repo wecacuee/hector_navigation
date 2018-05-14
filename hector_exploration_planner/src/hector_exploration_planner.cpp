@@ -241,7 +241,7 @@ void HectorExplorationPlanner::updateFrontiers()
   }
 
   if (is_frontiers_found_) {
-    frontier_vis_->publishVisOnDemand(frontiers_, clustered_frontiers_, exploration_trans_img_, *costmap_, *costmap_ros_);
+    frontier_vis_->publishVisOnDemand(frontiers_img_, clustered_frontiers_, exploration_trans_img_, *costmap_, *costmap_ros_);
   }
 }
 
@@ -843,6 +843,7 @@ void HectorExplorationPlanner::setupMapData()
     obstacle_trans_array_.reset(new unsigned int[num_map_cells_]);
     is_goal_array_.reset(new bool[num_map_cells_]);
     frontier_map_array_.reset(new int[num_map_cells_]);
+    frontiers_img_ = cv::Mat(map_height_, map_width_, CV_8UC1, cv::Scalar(0));
     clearFrontiers();
     resetMaps();
   }
@@ -909,6 +910,7 @@ bool HectorExplorationPlanner::buildexploration_trans_array_(const geometry_msgs
       ROS_DEBUG("[hector_exploration_planner] Goal init cost: %d, point: %d", exploration_trans_array_[goal_point], goal_point);
     }
     is_goal_array_[goal_point] = true;
+    frontiers_img_.data[goal_point] = 255;
     myqueue.push(goal_point);
   }
 

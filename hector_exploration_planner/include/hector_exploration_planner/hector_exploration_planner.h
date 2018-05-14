@@ -225,6 +225,7 @@ private:
   std::vector<geometry_msgs::PoseStamped> clustered_frontiers_;
   boost::atomic_bool is_frontiers_found_;
   boost::mutex frontiers_mutex_;
+  cv::Mat frontiers_img_;
 
   boost::shared_ptr<boost::thread> frontiers_thread_;
 
