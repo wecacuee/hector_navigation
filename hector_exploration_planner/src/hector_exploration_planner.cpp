@@ -235,9 +235,14 @@ void HectorExplorationPlanner::updateFrontiers()
       ROS_WARN("Close Exploration desired, but no frontiers found. Falling back to normal exploration!");
       is_frontiers_found_ = findFrontiers(frontiers_);
     }
-
   } else {
     is_frontiers_found_ = findFrontiers(frontiers_);
+  }
+
+  bool visualization_requested = (visualization_pub_.getNumSubscribers() > 0);
+  if (visualization_requested)
+  {
+    visualizeFrontiers(clustered_frontiers_);
   }
 
   if (is_frontiers_found_) {
@@ -1182,10 +1187,25 @@ bool HectorExplorationPlanner::constructFrontier(int point, geometry_msgs::PoseS
   return false;
 }
 
+bool HectorExplorationPlanner::findAllFrontiers_index(std::vector<int>& allFrontiers)
+{
+  allFrontiers.clear();
+  // check for all cells in the occupancy grid whether or not they are frontier cells
+  for (unsigned int i = 0; i < num_map_cells_; ++i)
+  {
+    if (isFrontier(i))
+    {
+      allFrontiers.push_back(i);
+    }
+  }
+
+  return (allFrontiers.size() > 0);
+}
+
 bool HectorExplorationPlanner::findFrontiers_index(std::vector<int>& frontiers)
 {
-  // get latest costmap
-  clearFrontiers();
+  frontiers.clear();
+
   // check for all cells in the occupancy grid whether or not they are frontier cells
   for (unsigned int i = 0; i < num_map_cells_; ++i)
   {
@@ -1197,6 +1217,7 @@ bool HectorExplorationPlanner::findFrontiers_index(std::vector<int>& frontiers)
 
   return (frontiers.size() > 0);
 }
+
 
 bool HectorExplorationPlanner::findFrontiers(std::vector<geometry_msgs::PoseStamped> &frontiers){
   std::vector<geometry_msgs::PoseStamped> empty_vec;
@@ -1274,80 +1295,22 @@ bool HectorExplorationPlanner::findFrontiersCloseToPath(std::vector<geometry_msg
 
             if (current_val >= explore_threshold){ //&& current_val <= explore_threshold+ DIAGONAL_COST){
               geometry_msgs::PoseStamped finalFrontier;
-              double wx,wy;
-              unsigned int mx,my;
-              costmap_->indexToCells(i, mx, my);
-              costmap_->mapToWorld(mx,my,wx,wy);
-              std::string global_frame = costmap_ros_->getGlobalFrameID();
-              finalFrontier.header.frame_id = global_frame;
-              finalFrontier.pose.position.x = wx;
-              finalFrontier.pose.position.y = wy;
-              finalFrontier.pose.position.z = 0.0;
-
-              double yaw = getYawToUnknown(costmap_->getIndex(mx,my));
-
-              //if(frontier_is_valid){
-
-              finalFrontier.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
-
+              this->constructFrontier(i, finalFrontier);
               frontiers.push_back(finalFrontier);
-
             }
-
           }
         }
-
         return frontiers.size() > 0;
-
-
-
-
-
       }
     }
   }
 
-
-
-
-
-  // list of all frontiers in the occupancy grid
   std::vector<int> allFrontiers;
-
-  // check for all cells in the occupancy grid whether or not they are frontier cells
-  for(unsigned int i = 0; i < num_map_cells_; ++i){
-    if(isFrontier(i)){
-      allFrontiers.push_back(i);
-    }
-  }
-
-  for(unsigned int i = 0; i < allFrontiers.size(); ++i){
-    if(!isFrontierReached(allFrontiers[i])){
-      geometry_msgs::PoseStamped finalFrontier;
-      double wx,wy;
-      unsigned int mx,my;
-      costmap_->indexToCells(allFrontiers[i], mx, my);
-      costmap_->mapToWorld(mx,my,wx,wy);
-      std::string global_frame = costmap_ros_->getGlobalFrameID();
-      finalFrontier.header.frame_id = global_frame;
-      finalFrontier.pose.position.x = wx;
-      finalFrontier.pose.position.y = wy;
-      finalFrontier.pose.position.z = 0.0;
-
-      double yaw = getYawToUnknown(costmap_->getIndex(mx,my));
-
-      //if(frontier_is_valid){
-
-      finalFrontier.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
-
-      frontiers.push_back(finalFrontier);
-    }
-    //}
-  }
-
+  this->findAllFrontiers_index(allFrontiers);
   clustered_frontiers_.clear();
   clusterFrontiers(allFrontiers, clustered_frontiers_);
 
+  this->findFrontiers(frontiers);
   return (frontiers.size() > 0);
 }
 
@@ -1360,31 +1323,96 @@ bool HectorExplorationPlanner::findFrontiers(std::vector<geometry_msgs::PoseStam
     // get latest costmap
     clearFrontiers();
 
-    // list of all frontiers in the occupancy grid
-    std::vector<int> allFrontiers;
+    std::vector<int> frontiers_index;
+    this->findFrontiers_index(frontiers_index);
 
-    // check for all cells in the occupancy grid whether or not they are frontier cells
-    for (unsigned int i = 0; i < num_map_cells_; ++i)
+    for(unsigned int i = 0; i < frontiers_index.size(); i++)
     {
-        if (isFrontier(i))
-        {
-            allFrontiers.push_back(i);
-        }
-    }
-
-    // judge if the Frontier is reached (near the target point) or not, if not, construct frontiers using poseStamped
-    for (unsigned int i = 0; i < allFrontiers.size(); ++i)
-    {
-        if (!isFrontierReached(allFrontiers[i]))
-        {
-            geometry_msgs::PoseStamped finalFrontier;
-            this->constructFrontier(allFrontiers[i], finalFrontier);
-            frontiers.push_back(finalFrontier);
-        }
-        //}
+      geometry_msgs::PoseStamped finalFrontier;
+      this->constructFrontier(frontiers_index[i], finalFrontier);
+      frontiers.push_back(finalFrontier);
     }
 
     return (frontiers.size() > 0);
+}
+
+bool HectorExplorationPlanner::centerOfFrontierCluster(std::vector<int>& frontier_cluster,
+                                                       geometry_msgs::PoseStamped& frontiers)
+{
+  if (frontier_cluster.size() <= 0)
+    return false;
+  float x=0, y=0;
+  for(int i = 0; i < frontier_cluster.size(); i++)
+  {
+    unsigned int tx, ty;
+    costmap_->indexToCells(frontier_cluster[i],tx,ty);
+    x += tx;
+    y += ty;
+  }
+  int fx = (int) (x / frontier_cluster.size());
+  int fy = (int) (y / frontier_cluster.size());
+  int index = costmap_->getIndex(fx, fy);
+  constructFrontier(index, frontiers);
+}
+
+// group adjoining frontier points just index
+bool HectorExplorationPlanner::clusterFrontiers(std::vector<int>& allFrontiers, std::vector<geometry_msgs::PoseStamped>& clusteredfrontiers)
+{
+  const int FRONTIER_VALUE = -1;
+  boost::scoped_array<int> frontier_cluster_map(new int[num_map_cells_]);
+
+  // set all frontiers points value as -1 in frontier_cluster_map
+  for(int i = 0; i < allFrontiers.size(); i++)
+  {
+    frontier_cluster_map[allFrontiers[i]] = FRONTIER_VALUE;
+  }
+
+  // cluster_id comes from 1 and add 1 when there is a new cluster
+  int cluster_id = 1;
+  std::vector<std::vector<int>> frontier_clusters;
+  for(int i = 0; i < allFrontiers.size(); i++)
+  {
+    if(frontier_cluster_map[allFrontiers[i]] == FRONTIER_VALUE)
+    {
+      std::vector<int> neighbors;  // used as an queue to find all conjoint frontier points
+      std::vector<int> single_cluster; // save all frontier points in a cluster
+      neighbors.push_back(allFrontiers[i]);
+
+      while(neighbors.size() > 0)
+      {
+        int idx = neighbors.back();
+        neighbors.pop_back();
+        frontier_cluster_map[idx] = cluster_id; //set value as cluster_id if the point has been visited
+        single_cluster.push_back(idx);
+
+        // consider 8 neighborhood
+        int adjacentPoints[8];
+        getAdjacentPoints(idx,adjacentPoints);
+        for(int j = 0; j < 8; j++)
+        {
+          // if it is valid points and its value is FRONTIER_VALUE and it has not been visited (not positive value)
+          if(isValid(adjacentPoints[j]) && frontier_cluster_map[adjacentPoints[j]] == FRONTIER_VALUE)
+          {
+            neighbors.push_back(adjacentPoints[j]);
+          }
+        }
+      }
+      frontier_clusters.push_back(single_cluster);
+    }
+  }
+
+  // choose center as final Frontier for a cluster and construct the frontiers
+  for(int i = 0; i < frontier_clusters.size(); i++)
+  {
+    if(frontier_clusters[i].size() < 5)
+      continue;
+
+    geometry_msgs::PoseStamped frontier;
+    this->centerOfFrontierCluster(frontier_clusters[i], frontier);
+    clusteredfrontiers.push_back(frontier);
+  }
+
+  return !clusteredfrontiers.empty();
 }
 
 bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers)
@@ -1393,11 +1421,55 @@ bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers)
   return clusterFrontiers(allFrontiers, dummy_frontiers);
 }
 
-bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, std::vector<geometry_msgs::PoseStamped> &frontiers)
+void HectorExplorationPlanner::visualizeFrontiers(std::vector<geometry_msgs::PoseStamped>& clusteredfrontiers)
 {
-  std::vector<geometry_msgs::PoseStamped> empty_vec;
-  return clusterFrontiers(allFrontiers, frontiers, empty_vec);
+  static visualization_msgs::MarkerArray markers;
+
+
+  for (auto &marker: markers.markers) {
+    marker.action = visualization_msgs::Marker::DELETE;
+  }
+
+  visualization_pub_.publish(markers);
+  markers.markers.clear();
+
+  int id = 1;
+  for(int i = 0; i < clusteredfrontiers.size(); i++)
+  {
+      visualization_msgs::Marker marker;
+      marker.header.frame_id = "map";
+      marker.header.stamp = ros::Time();
+      marker.ns = "hector_exploration_planner";
+      marker.id = id++;
+      marker.type = visualization_msgs::Marker::ARROW;
+      marker.action = visualization_msgs::Marker::DELETE;
+      visualization_pub_.publish(marker);
+
+      marker.action = visualization_msgs::Marker::ADD;
+      marker.pose.position.x = clusteredfrontiers[i].pose.position.x;
+      marker.pose.position.y = clusteredfrontiers[i].pose.position.y;
+      marker.pose.position.z = 0.0;
+      marker.pose.orientation = clusteredfrontiers[i].pose.orientation;
+      marker.scale.x = 0.2;
+      marker.scale.y = 0.2;
+      marker.scale.z = 0.2;
+      marker.color.a = 1.0;
+
+      marker.color.r = 0.0;
+      marker.color.g = 1.0;
+      marker.color.b = 0.0;
+      marker.lifetime = ros::Duration(0); // (50,0);
+      markers.markers.push_back(marker);
+  }
+
+  visualization_pub_.publish(markers);
 }
+
+//bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, std::vector<geometry_msgs::PoseStamped> &frontiers)
+//{
+//  std::vector<geometry_msgs::PoseStamped> empty_vec;
+//  return clusterFrontiers(allFrontiers, frontiers, empty_vec);
+//}
 
 bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, std::vector<geometry_msgs::PoseStamped> &frontiers, std::vector<geometry_msgs::PoseStamped> &noFrontiers)
 {
@@ -1555,7 +1627,6 @@ bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, 
       marker.lifetime = ros::Duration(0); // (50,0);
       markers.markers.push_back(marker);
     }
-
   }
 
   if (visualization_requested)
@@ -1729,8 +1800,6 @@ bool HectorExplorationPlanner::isFrontier(int point){
           int noInfPoints[8];
           getAdjacentPoints(adjacentPoints[i],noInfPoints);
           for(int j = 0; j < 8; j++){
-
-
             if( isValid(noInfPoints[j]) && occupancy_grid_array_[noInfPoints[j]] == costmap_2d::NO_INFORMATION){
               ++no_inf_count;
 

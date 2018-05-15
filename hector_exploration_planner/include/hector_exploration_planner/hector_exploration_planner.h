@@ -169,7 +169,13 @@ private:
   int downleft(int point);
   // construct a PoseStamped structure from int index
   bool constructFrontier(int point, geometry_msgs::PoseStamped& frontier);
+  bool findAllFrontiers_index(std::vector<int>& allFrontiers);
   bool findFrontiers_index(std::vector<int>& frontiers);
+//  bool clusterFrontiers_index(std::vector<int>& allFrontiers, std::vector<int>& frontiers);
+  bool centerOfFrontierCluster(std::vector<int>& frontier_clusters,
+                               geometry_msgs::PoseStamped& frontiers);
+  void visualizeFrontiers(std::vector<geometry_msgs::PoseStamped> &frontiers);
+
 
 
   ros::Publisher observation_pose_pub_;
