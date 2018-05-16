@@ -14,7 +14,7 @@
 #include <cv_bridge/cv_bridge.h>
 
 #include <cmath>
-
+#include <ctime>
 
 namespace hector_exploration_planner
 {
@@ -53,17 +53,7 @@ void FrontierVis::publishVisOnDemand(cv::Mat frontiers_img,
   boost::lock_guard<boost::mutex> guard(mutex_);
 
   cv::Mat map(costmap.getSizeInCellsY(), costmap.getSizeInCellsY(), CV_8UC3, cv::Scalar(0, 0, 0));
-  cv::RNG rng;
-
-  cv::Mat preprocessed_frontier_img;
-  frontier_analysis::preprocessFrontierImg(frontiers_img, preprocessed_frontier_img);
-
-  frontier_analysis::colorFrontiers(
-    frontiers_img,
-    frontier_analysis::groupFrontiers(preprocessed_frontier_img, clustered_frontiers),
-    rng,
-    map
-  );
+  static cv::RNG rng(std::time(nullptr));
 
   // ------------------ raw frontiers ------------------//
 //  if (frontiers_img.size == map.size) {
@@ -87,6 +77,50 @@ void FrontierVis::publishVisOnDemand(cv::Mat frontiers_img,
 //    channels[1] = exploration_transform;
 //    cv::merge(channels, 3, map);
 //  }
+
+  // ------------------ groundtruth ------------------//
+  // TODO: don't hard code these
+  {
+    cv::Mat groundtruth_occupancy_map;
+    frontier_analysis::loadStageWorld(
+      std::string("/opt/ros/indigo/share/stage/worlds/bitmaps/cave.png"), cv::Size2f(16, 16),
+      costmap,
+      groundtruth_occupancy_map
+    );
+
+    cv::Mat channels[3];
+    cv::split(map, channels);
+    channels[2] = groundtruth_occupancy_map;
+    cv::merge(channels, 3, map);
+  }
+
+  // ------------------ costmap ------------------//
+  {
+    auto raw_costmap = costmap.getCharMap();
+    cv::Mat raw_costmap_img(costmap.getSizeInCellsX(), costmap.getSizeInCellsY(), CV_8UC1, (void*)raw_costmap);
+    cv::Mat obstacle_costmap_img;
+    cv::Mat free_costmap_img;
+
+    cv::threshold(raw_costmap_img, obstacle_costmap_img, 170, 255, cv::THRESH_BINARY_INV);
+//    cv::threshold(raw_costmap_img, free_costmap_img, 100, 255, cv::THRESH_BINARY_INV);
+    cv::Mat costmap_certain_img = obstacle_costmap_img; // + (255 - free_costmap_img);
+
+    cv::Mat channels[3];
+    cv::split(map, channels);
+    channels[1] = costmap_certain_img;
+    cv::merge(channels, 3, map);
+  }
+
+  // ------------------ frontiers ------------------//
+  cv::Mat preprocessed_frontier_img;
+  frontier_analysis::preprocessFrontierImg(frontiers_img, preprocessed_frontier_img);
+
+  frontier_analysis::colorFrontiers(
+    frontiers_img,
+    frontier_analysis::groupFrontiers(preprocessed_frontier_img, clustered_frontiers),
+    rng,
+    map
+  );
 
   // ------------------ robot pose ------------------//
   tf::Stamped<tf::Pose> robot_pose;

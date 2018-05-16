@@ -253,7 +253,9 @@ bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &s
   {
     boost::mutex::scoped_lock(frontiers_mutex_);
     if (!frontiers_.empty()) {
-      goals = frontiers_;
+      goals.reserve(frontiers_.size());
+      std::copy(frontiers_.begin(), frontiers_.end(), std::back_inserter(goals));
+//      goals = frontiers_;
     }
   }
 
