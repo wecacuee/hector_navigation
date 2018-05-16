@@ -39,7 +39,7 @@ void FrontierVis::drawPose(cv::Mat img, cv::Point point, double yaw,
   cv::line(img, point, normal_end, normal_color);
 }
 
-void FrontierVis::drawPoint(cv::Mat img, cv::Point point, cv::Scalar color)
+void FrontierVis::drawPoint(cv::Mat &img, cv::Point point, cv::Scalar color)
 {
   cv::circle(img, point, 3, color, -1);
 }
@@ -51,9 +51,12 @@ void FrontierVis::publishVisOnDemand(cv::Mat frontiers_img,
                                      const costmap_2d::Costmap2DROS& costmap_ros)
 {
   boost::lock_guard<boost::mutex> guard(mutex_);
-
-  cv::Mat map(costmap.getSizeInCellsY(), costmap.getSizeInCellsY(), CV_8UC3, cv::Scalar(0, 0, 0));
   static cv::RNG rng(std::time(nullptr));
+  cv::Mat map(costmap.getSizeInCellsY(), costmap.getSizeInCellsY(), CV_8UC3, cv::Scalar(0, 0, 0));
+
+  cv::Mat preprocessed_frontier_img;
+  frontier_analysis::preprocessFrontierImg(frontiers_img, preprocessed_frontier_img);
+  auto grouped_frontiers = frontier_analysis::groupFrontiers(preprocessed_frontier_img, clustered_frontiers);
 
   // ------------------ raw frontiers ------------------//
 //  if (frontiers_img.size == map.size) {
@@ -112,15 +115,35 @@ void FrontierVis::publishVisOnDemand(cv::Mat frontiers_img,
   }
 
   // ------------------ frontiers ------------------//
-  cv::Mat preprocessed_frontier_img;
-  frontier_analysis::preprocessFrontierImg(frontiers_img, preprocessed_frontier_img);
-
-  frontier_analysis::colorFrontiers(
+  auto frontier_colors = frontier_analysis::colorFrontiers(
     frontiers_img,
-    frontier_analysis::groupFrontiers(preprocessed_frontier_img, clustered_frontiers),
+    grouped_frontiers,
     rng,
     map
   );
+
+  // ------------------ floodfill ------------------//
+  auto closest_unknowns = frontier_analysis::getClosestUnknowns(map, grouped_frontiers);
+  assert(grouped_frontiers.size() == closest_unknowns.size());
+
+  auto floodfilled_frontiers = frontier_analysis::expandUnknowns(map, closest_unknowns);
+  assert(floodfilled_frontiers.size() == frontier_colors.size());
+
+  for (const auto &closest_unknown: closest_unknowns)
+  {
+    drawPoint(map, closest_unknown, cv::Scalar(255, 255, 255));
+  }
+
+  for (size_t i = 0, len = floodfilled_frontiers.size(); i < len; i++)
+  {
+    auto flooded_points = floodfilled_frontiers[i];
+    for (const auto &point: flooded_points)
+    {
+//      drawPoint(map, point, frontier_colors[i]);
+//      map.at<cv::Vec3b>(point) = cv::Vec3b(frontier_colors[i][0], frontier_colors[i][1], frontier_colors[i][2]);
+    }
+  }
+
 
   // ------------------ robot pose ------------------//
   tf::Stamped<tf::Pose> robot_pose;
