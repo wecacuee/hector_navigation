@@ -6,6 +6,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include <iostream>
+
 namespace hector_exploration_planner
 {
 namespace frontier_analysis
@@ -34,10 +36,31 @@ void preprocessFrontierImg(cv::Mat &frontier_img_in, cv::Mat &frontier_img_out)
 std::vector< std::vector<cv::Point> > groupFrontiers(cv::Mat &frontier_img,
                                                      std::vector<cv::Point> clustered_frontier_points)
 {
+//  std::map<cv::Point, bool> already_grouped;
+//
+//  std::vector< std::vector<cv::Point> > grouped_frontiers;
+//
 //  for (const auto &frontier_point: clustered_frontier_points)
 //  {
-//    // TODO: use the clustered_frontier_points to floodfill (for efficiency and better frontiers)
+//    if (!frontier_img.at<uint8_t>(frontier_point))
+//    {
+//      std::cout << "CLUSTERED POINT NOT IN FRONTIER" << std::endl;
+//      continue;
+//    }
+//    cv::Mat temp_img = frontier_img.clone();
+//    cv::floodFill(temp_img, frontier_point, cv::Scalar(255), nullptr, cv::Scalar(0), cv::Scalar(0));
+//    cv::Mat non_zero_coordinates;
+//    cv::findNonZero(temp_img, non_zero_coordinates);
+//    // TODO: check if they've already been grouped into some other group
+//    std::vector<cv::Point> group;
+//    for (size_t i = 0; i < non_zero_coordinates.total(); i++)
+//    {
+//      group.push_back(non_zero_coordinates.at<cv::Point>(i));
+//    }
+//    grouped_frontiers.push_back(group);
 //  }
+//
+//  return grouped_frontiers;
 
   std::vector< std::vector<cv::Point> > contours;
   std::vector<cv::Vec4i> hierarchy;

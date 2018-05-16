@@ -1375,13 +1375,14 @@ bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers)
 bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers, std::vector<geometry_msgs::PoseStamped> &frontiers)
 {
   std::vector<geometry_msgs::PoseStamped> empty_vec;
+  clustered_frontier_points_.clear();
   return clusterFrontiers(allFrontiers, frontiers, empty_vec, clustered_frontier_points_);
 }
 
 bool HectorExplorationPlanner::clusterFrontiers(std::vector<int> &allFrontiers,
                                                 std::vector<geometry_msgs::PoseStamped> &frontiers,
                                                 std::vector<geometry_msgs::PoseStamped> &noFrontiers,
-                                                std::vector<cv::Point> frontierPoints)
+                                                std::vector<cv::Point> &frontierPoints)
 {
   //@TODO: Review and possibly remove unused code below
 

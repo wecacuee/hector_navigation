@@ -156,7 +156,7 @@ private:
   bool clusterFrontiers(std::vector<int> &allFrontiers,
                         std::vector<geometry_msgs::PoseStamped> &frontiers,
                         std::vector<geometry_msgs::PoseStamped> &noFrontiers,
-                        std::vector<cv::Point> frontierPoints);
+                        std::vector<cv::Point> &frontierPoints);
 
   void getStraightPoints(int point, int points[]);
   void getDiagonalPoints(int point, int points[]);

@@ -57,6 +57,7 @@ void FrontierVis::publishVisOnDemand(cv::Mat frontiers_img,
 
   cv::Mat preprocessed_frontier_img;
   frontier_analysis::preprocessFrontierImg(frontiers_img, preprocessed_frontier_img);
+
   frontier_analysis::colorFrontiers(
     frontiers_img,
     frontier_analysis::groupFrontiers(preprocessed_frontier_img, clustered_frontiers),
