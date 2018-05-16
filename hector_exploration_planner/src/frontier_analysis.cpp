@@ -146,7 +146,7 @@ std::vector<cv::Point> getClosestUnknowns(cv::Mat &occupancy_unknown_img,
 
   for (const auto &frontier_group: grouped_frontiers)
   {
-    cv::Point closest_point;
+    cv::Point closest_point(-1, -1);
     if (frontier_group.empty())
     {
       ROS_ERROR("Frontier group empty");
@@ -159,15 +159,14 @@ std::vector<cv::Point> getClosestUnknowns(cv::Mat &occupancy_unknown_img,
     for (auto frontier_point: frontier_group)
     {
       queue.push(frontier_point);
-      explored_points.insert(
-        std::make_pair< std::tuple<int, int>, bool >(pointToPair(frontier_point), true)
-      );
     }
 
     while (!queue.empty())
     {
       auto point = queue.front();
       queue.pop();
+
+      if (explored_points.find(pointToPair(point)) != explored_points.end()) continue;
 
       explored_points.insert(
         std::make_pair< std::tuple<int, int>, bool >(pointToPair(point), true)
@@ -187,20 +186,20 @@ std::vector<cv::Point> getClosestUnknowns(cv::Mat &occupancy_unknown_img,
             && neighbour_point.y < occupancy_unknown_img.rows
             )
           {
-
-            auto patch = occupancy_unknown_img.rowRange(std::max(0, neighbour_point.y - 1),
-                                                        std::min(neighbour_point.y + 1, occupancy_unknown_img.rows))
-                                              .colRange(std::max(0, neighbour_point.x - 1),
-                                                        std::min(neighbour_point.x + 1, occupancy_unknown_img.cols));
+            // TODO: softcode these numbers
+            auto patch = occupancy_unknown_img.rowRange(std::max(0, neighbour_point.y - 10),
+                                                        std::min(neighbour_point.y + 10, occupancy_unknown_img.rows - 1))
+                                              .colRange(std::max(0, neighbour_point.x - 10),
+                                                        std::min(neighbour_point.x + 10, occupancy_unknown_img.cols - 1));
             bool is_patch_zero = std::accumulate(
               patch.data,
               (patch.data + patch.total()),
               true,
               [](bool status, const uint8_t data) {
-                return status && data != 0;
+                return status && data == 0;
               }
             );
-//            auto color = occupancy_unknown_img.at<cv::Vec3b>(neighbour_point);
+            auto color = occupancy_unknown_img.at<cv::Vec3b>(neighbour_point);
 //            if (color[1] == 0 && color[2] == 0)
             if (is_patch_zero)
             {
@@ -208,14 +207,15 @@ std::vector<cv::Point> getClosestUnknowns(cv::Mat &occupancy_unknown_img,
               closest_point = neighbour_point;
               break;
             }
-            queue.push(neighbour_point);
+            // if not obstacle
+            if (color[2] == 0) {
+              queue.push(neighbour_point);
+            }
           }
         }
-        if (is_found)
-        {
-          break;
-        }
+        if (is_found) break;
       }
+      if (is_found) break;
     }
 
     closest_unknowns.push_back(closest_point);
@@ -237,49 +237,43 @@ std::vector< std::vector<cv::Point> > expandUnknowns(cv::Mat &occupancy_unknown_
   for (const auto &unknown_point: unknown_points)
   {
     std::vector<cv::Point> unknown_group;
+    if (unknown_point.x >= 0 && unknown_point.y >= 0) {
+      std::map<std::tuple<int, int>, bool> explored_points;
+      std::queue<cv::Point> queue;
 
-    std::map<std::tuple<int, int>, bool> explored_points;
-    std::queue<cv::Point> queue;
+      queue.push(unknown_point);
+      unknown_group.push_back(unknown_point);
 
-    queue.push(unknown_point);
-    unknown_group.push_back(unknown_point);
-    explored_points.insert(
-      std::make_pair< std::tuple<int, int>, bool >(pointToPair(unknown_point), true)
-    );
+      while (!queue.empty()) {
+        auto point = queue.front();
+        queue.pop();
 
-    while (!queue.empty())
-    {
-      auto point = queue.front();
-      queue.pop();
+        if (explored_points.find(pointToPair(point)) != explored_points.end()) continue;
+        explored_points.insert(
+          std::make_pair<std::tuple<int, int>, bool>(pointToPair(point), true)
+        );
 
-      explored_points.insert(
-        std::make_pair< std::tuple<int, int>, bool >(pointToPair(point), true)
-      );
+        for (int i = -1; i < 2; i++) {
+          for (int j = -1; j < 2; j++) {
+            cv::Point neighbour_point(point.x + i, point.y + j);
 
-      for (int i = -1; i < 2; i++)
-      {
-        for (int j = -1; j < 2; j++)
-        {
-          cv::Point neighbour_point(point.x + i, point.y + j);
-
-          if (
-            explored_points.find(pointToPair(neighbour_point)) == explored_points.end()
-            && neighbour_point.x >= 0
-            && neighbour_point.x < occupancy_unknown_img.cols
-            && neighbour_point.y >= 0
-            && neighbour_point.y < occupancy_unknown_img.rows
-            )
-          {
-            auto color = occupancy_unknown_img.at<cv::Vec3b>(neighbour_point.y, neighbour_point.x);
-            if (color[1] == 0) // || color[2] == 0)
-            {
-              unknown_group.push_back(neighbour_point);
+            if (
+              explored_points.find(pointToPair(neighbour_point)) == explored_points.end()
+              && neighbour_point.x >= 0
+              && neighbour_point.x < occupancy_unknown_img.cols
+              && neighbour_point.y >= 0
+              && neighbour_point.y < occupancy_unknown_img.rows
+              ) {
+              auto color = occupancy_unknown_img.at<cv::Vec3b>(neighbour_point);
+              if (color[1] == 0 && color[2] == 0) {
+                unknown_group.push_back(neighbour_point);
+                queue.push(neighbour_point);
+              }
             }
           }
         }
       }
     }
-
     unknowns_grouped.push_back(unknown_group);
   }
   return unknowns_grouped;

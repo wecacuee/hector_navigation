@@ -213,6 +213,7 @@ bool HectorExplorationPlanner::makePlan(const geometry_msgs::PoseStamped &start,
 
 void HectorExplorationPlanner::updateFrontiers()
 {
+  ROS_DEBUG_NAMED("state", "STARTED UPDATE_FRONTIER");
   boost::mutex::scoped_lock(frontiers_mutex_);
 
   is_frontiers_found_ = false;
@@ -243,6 +244,7 @@ void HectorExplorationPlanner::updateFrontiers()
   if (is_frontiers_found_) {
     frontier_vis_->publishVisOnDemand(frontiers_img_, clustered_frontier_points_, exploration_trans_img_, *costmap_, *costmap_ros_);
   }
+  ROS_DEBUG_NAMED("state", "ENDED UPDATE_FRONTIERLISHVIS");
 }
 
 bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> &plan)

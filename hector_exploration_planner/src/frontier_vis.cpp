@@ -50,6 +50,7 @@ void FrontierVis::publishVisOnDemand(cv::Mat frontiers_img,
                                      const costmap_2d::Costmap2D& costmap,
                                      const costmap_2d::Costmap2DROS& costmap_ros)
 {
+  ROS_DEBUG_NAMED("state", "STARTED PUBLISHVIS");
   boost::lock_guard<boost::mutex> guard(mutex_);
   static cv::RNG rng(std::time(nullptr));
   cv::Mat map(costmap.getSizeInCellsY(), costmap.getSizeInCellsY(), CV_8UC3, cv::Scalar(0, 0, 0));
@@ -57,7 +58,6 @@ void FrontierVis::publishVisOnDemand(cv::Mat frontiers_img,
   cv::Mat preprocessed_frontier_img;
   frontier_analysis::preprocessFrontierImg(frontiers_img, preprocessed_frontier_img);
   auto grouped_frontiers = frontier_analysis::groupFrontiers(preprocessed_frontier_img, clustered_frontiers);
-
   // ------------------ raw frontiers ------------------//
 //  if (frontiers_img.size == map.size) {
 //    cv::Mat channels[3];
@@ -129,9 +129,13 @@ void FrontierVis::publishVisOnDemand(cv::Mat frontiers_img,
   auto floodfilled_frontiers = frontier_analysis::expandUnknowns(map, closest_unknowns);
   assert(floodfilled_frontiers.size() == frontier_colors.size());
 
-  for (const auto &closest_unknown: closest_unknowns)
+  for (size_t i = 0, len = closest_unknowns.size(); i < len; i++)
   {
-    drawPoint(map, closest_unknown, cv::Scalar(255, 255, 255));
+    auto closest_unknown = closest_unknowns[i];
+    if (closest_unknown.x >= 0 && closest_unknown.y >= 0)
+    {
+      drawPoint(map, closest_unknown, frontier_colors[i]);
+    }
   }
 
   for (size_t i = 0, len = floodfilled_frontiers.size(); i < len; i++)
@@ -139,7 +143,6 @@ void FrontierVis::publishVisOnDemand(cv::Mat frontiers_img,
     auto flooded_points = floodfilled_frontiers[i];
     for (const auto &point: flooded_points)
     {
-//      drawPoint(map, point, frontier_colors[i]);
 //      map.at<cv::Vec3b>(point) = cv::Vec3b(frontier_colors[i][0], frontier_colors[i][1], frontier_colors[i][2]);
     }
   }
@@ -159,5 +162,7 @@ void FrontierVis::publishVisOnDemand(cv::Mat frontiers_img,
   cv::flip(map, map_flipped, 0);
   sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", map_flipped).toImageMsg();
   image_pub_.publish(msg);
+
+  ROS_DEBUG_NAMED("state", "ENDED PUBLISHVIS");
 }
 } // namespace hector_exploration_planner
