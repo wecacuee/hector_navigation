@@ -869,6 +869,7 @@ bool HectorExplorationPlanner::buildexploration_trans_array_(const geometry_msgs
   // reset exploration transform
   std::fill_n(exploration_trans_array_.get(), num_map_cells_, UINT_MAX);
   std::fill_n(is_goal_array_.get(), num_map_cells_, false);
+  frontiers_img_ = cv::Scalar(0);
 
   std::queue<int> myqueue;
 
