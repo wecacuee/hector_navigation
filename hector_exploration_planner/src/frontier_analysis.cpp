@@ -7,7 +7,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include <iostream>
-#include <queue>
+#include <stack>
 #include <map>
 #include <numeric>
 
@@ -153,18 +153,18 @@ std::vector<cv::Point> getClosestUnknowns(cv::Mat &occupancy_unknown_img,
     }
 
     std::map<std::tuple<int, int>, bool> explored_points;
-    std::queue<cv::Point> queue;
+    std::stack<cv::Point> fringe;
     bool is_found = false;
 
     for (auto frontier_point: frontier_group)
     {
-      queue.push(frontier_point);
+      fringe.push(frontier_point);
     }
 
-    while (!queue.empty())
+    while (!fringe.empty())
     {
-      auto point = queue.front();
-      queue.pop();
+      auto point = fringe.top(); // front();
+      fringe.pop();
 
       if (explored_points.find(pointToPair(point)) != explored_points.end()) continue;
 
@@ -187,18 +187,23 @@ std::vector<cv::Point> getClosestUnknowns(cv::Mat &occupancy_unknown_img,
             )
           {
             // TODO: softcode these numbers
-            auto patch = occupancy_unknown_img.rowRange(std::max(0, neighbour_point.y - 10),
-                                                        std::min(neighbour_point.y + 10, occupancy_unknown_img.rows - 1))
-                                              .colRange(std::max(0, neighbour_point.x - 10),
-                                                        std::min(neighbour_point.x + 10, occupancy_unknown_img.cols - 1));
-            bool is_patch_zero = std::accumulate(
-              patch.data,
-              (patch.data + patch.total()),
-              true,
-              [](bool status, const uint8_t data) {
-                return status && data == 0;
+            auto patch = occupancy_unknown_img.rowRange(std::max(0, neighbour_point.y - 3),
+                                                        std::min(neighbour_point.y + 3, occupancy_unknown_img.rows - 1))
+                                              .colRange(std::max(0, neighbour_point.x - 3),
+                                                        std::min(neighbour_point.x + 3, occupancy_unknown_img.cols - 1));
+
+            bool is_patch_zero = true;
+            for (auto it = patch.begin<cv::Vec3b>(); it != patch.end<cv::Vec3b>(); it++)
+            {
+              std::cout << *it << std::endl;
+              if ((*it)[1] || (*it)[2])
+              {
+                std::cout << patch << std::endl;
+                is_patch_zero = false;
+                break;
               }
-            );
+            }
+
             auto color = occupancy_unknown_img.at<cv::Vec3b>(neighbour_point);
 //            if (color[1] == 0 && color[2] == 0)
             if (is_patch_zero)
@@ -208,9 +213,21 @@ std::vector<cv::Point> getClosestUnknowns(cv::Mat &occupancy_unknown_img,
               break;
             }
             // if not obstacle
-            if (color[2] == 0) {
-              queue.push(neighbour_point);
+            if (color[1] == 0 && color[2] == 0) {
+              fringe.push(neighbour_point);
             }
+
+            // debug
+//            cv::Mat tmp_img = occupancy_unknown_img.clone();
+//            cv::circle(tmp_img, neighbour_point, 3, cv::Scalar(255, 0, 0), -1);
+//
+//            auto patch_tmp = tmp_img.rowRange(std::max(0, neighbour_point.y - 3),
+//                                           std::min(neighbour_point.y + 3, occupancy_unknown_img.rows - 1))
+//              .colRange(std::max(0, neighbour_point.x - 3),
+//                        std::min(neighbour_point.x + 3, occupancy_unknown_img.cols - 1)) = cv::Scalar(0, 0, 255);
+//            patch_tmp = cv::Scalar(0, 0, 255);
+//
+//            cv::imwrite("/tmp/save_img.jpg", tmp_img);
           }
         }
         if (is_found) break;
