@@ -1370,7 +1370,7 @@ bool HectorExplorationPlanner::clusterFrontiers(std::vector<int>& all_frontiers,
   // choose center as final Frontier for a cluster and construct the frontiers
   for(int i = 0; i < frontier_clusters_index.size(); i++)
   {
-    if(frontier_clusters_index[i].size() < 5)
+    if(frontier_clusters_index[i].size() < 10)
       continue;
 
     geometry_msgs::PoseStamped frontier;
@@ -1669,7 +1669,7 @@ bool HectorExplorationPlanner::isFrontier(int point){
             if( isValid(noInfPoints[j]) && occupancy_grid_array_[noInfPoints[j]] == costmap_2d::NO_INFORMATION){
               ++no_inf_count;
 
-              if(no_inf_count > 2){
+              if(no_inf_count > 1){
                 return true;
               }
             }
