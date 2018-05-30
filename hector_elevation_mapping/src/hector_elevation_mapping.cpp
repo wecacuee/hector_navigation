@@ -275,7 +275,7 @@ void ElevationMapping::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& poi
         double measurement_distance = pointcloud2_sensor_pcl->points[k].z;
 
         // check for invalid measurements
-        if (isnan(pt_cloud.x) || isnan(pt_cloud.y) || isnan(pt_cloud.z))
+        if (std::isnan(pt_cloud.x) || std::isnan(pt_cloud.y) || std::isnan(pt_cloud.z))
             continue;
 
         // check max distance (manhatten norm)
