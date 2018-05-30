@@ -226,12 +226,18 @@ void HectorExplorationPlanner::updateFrontiers()
   clearFrontiers();
 
   // create obstacle tranform
-  buildobstacle_trans_array_(p_use_inflated_obs_);
-
+  {
+    auto build_trans_array_start = ros::Time::now();
+    buildobstacle_trans_array_(p_use_inflated_obs_);
+    ROS_DEBUG_NAMED("profiling", "buildobstacle_trans_array_ took %f secs", (ros::Time::now() - build_trans_array_start).toSec());
+  }
   if (p_explore_close_to_path_) {
 
-    is_frontiers_found_ = findFrontiersCloseToPath(frontiers_);
-
+    {
+      auto find_frontiers_close_start = ros::Time::now();
+      is_frontiers_found_ = findFrontiersCloseToPath(frontiers_);
+      ROS_DEBUG_NAMED("profiling", "findFrontiersCloseToPath took %f secs", (ros::Time::now() - find_frontiers_close_start).toSec());
+    }
     if (!is_frontiers_found_){
       ROS_WARN("Close Exploration desired, but no frontiers found. Falling back to normal exploration!");
       is_frontiers_found_ = findFrontiers(frontiers_);
@@ -241,9 +247,9 @@ void HectorExplorationPlanner::updateFrontiers()
     is_frontiers_found_ = findFrontiers(frontiers_);
   }
 
-  if (is_frontiers_found_) {
-    frontier_vis_->publishVisOnDemand(frontiers_img_, clustered_frontier_points_, exploration_trans_img_, *costmap_, *costmap_ros_);
-  }
+  // if (is_frontiers_found_) {
+  //   frontier_vis_->publishVisOnDemand(frontiers_img_, clustered_frontier_points_, exploration_trans_img_, *costmap_, *costmap_ros_);
+  // }
   ROS_DEBUG_NAMED("state", "ENDED UPDATE_FRONTIERLISHVIS");
 }
 
@@ -251,14 +257,18 @@ bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &s
 {
   std::vector<geometry_msgs::PoseStamped> goals;
 
-  updateFrontiers();
   {
-    boost::mutex::scoped_lock(frontiers_mutex_);
-    if (!frontiers_.empty()) {
-      goals.reserve(frontiers_.size());
-      std::copy(frontiers_.begin(), frontiers_.end(), std::back_inserter(goals));
-//      goals = frontiers_;
+    auto frontier_start = ros::Time::now();
+    updateFrontiers();
+    {
+      boost::mutex::scoped_lock(frontiers_mutex_);
+      if (!frontiers_.empty()) {
+        goals.reserve(frontiers_.size());
+        std::copy(frontiers_.begin(), frontiers_.end(), std::back_inserter(goals));
+  //      goals = frontiers_;
+      }
     }
+    ROS_DEBUG_NAMED("profiling", "updateFrontiers took %f secs", (ros::Time::now() - frontier_start).toSec());
   }
 
   plan.clear();
@@ -275,9 +285,13 @@ bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &s
   }
 
   // make plan
-  if(!buildexploration_trans_array_(start,goals,true)){
-    return false;
-  }
+  {
+    auto planning_start = ros::Time::now();
+    if(!buildexploration_trans_array_(start,goals,true)){
+      return false;
+    }
+    ROS_DEBUG_NAMED("profiling", "buildexploration_trans_array_ took %f secs", (ros::Time::now() - planning_start).toSec());
+  } 
 
   if(!getTrajectory(start,goals,plan)){
     ROS_INFO("[hector_exploration_planner] exploration: could not plan to frontier, starting inner-exploration");
