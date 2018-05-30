@@ -33,9 +33,9 @@
 
 
 namespace pose_follower {
-  HectorPathFollower::HectorPathFollower(): tf_(NULL) {}
+  HectorPathFollower::HectorPathFollower(): tf_(NULL), is_stopped_(true) {}
 
-  void HectorPathFollower::initialize(tf::TransformListener* tf){
+  void HectorPathFollower::initialize(tf::TransformListener* tf) {
     tf_ = tf;
     current_waypoint_ = 0;
     goal_reached_time_ = ros::Time::now();
@@ -126,6 +126,7 @@ namespace pose_follower {
       ROS_ERROR("Can't get robot pose");
       geometry_msgs::Twist empty_twist;
       cmd_vel = empty_twist;
+      is_stopped_ = true;
       return false;
     }
 
@@ -169,11 +170,13 @@ namespace pose_follower {
       ROS_ERROR("Not legal (%.2f, %.2f, %.2f)", limit_vel.linear.x, limit_vel.linear.y, limit_vel.angular.z);
       geometry_msgs::Twist empty_twist;
       cmd_vel = empty_twist;
+      is_stopped_ = true;
       return false;
     }
 
     //if it is legal... we'll pass it on
     cmd_vel = test_vel;
+    is_stopped_ = false;
 
     bool in_goal_position = false;
     while(fabs(diff.linear.x) <= tolerance_trans_ &&
@@ -188,7 +191,7 @@ namespace pose_follower {
       }
       else
       {
-        ROS_INFO("Reached goal: %d", current_waypoint_);
+        ROS_DEBUG("Reached goal: %d", current_waypoint_);
         in_goal_position = true;
         break;
       }
@@ -202,6 +205,7 @@ namespace pose_follower {
     if(goal_reached_time_ + ros::Duration(tolerance_timeout_) < ros::Time::now()){
       geometry_msgs::Twist empty_twist;
       cmd_vel = empty_twist;
+      is_stopped_ = true;
     }
 
     return true;
@@ -220,10 +224,11 @@ namespace pose_follower {
   bool HectorPathFollower::isGoalReached(){
     /*
     //@TODO: Do something reasonable here
+    */
     if(goal_reached_time_ + ros::Duration(tolerance_timeout_) < ros::Time::now() && stopped()){
       return true;
     }
-    */
+    
     return false;
   }
 
