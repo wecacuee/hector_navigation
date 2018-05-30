@@ -6,6 +6,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+
 #include <iostream>
 #include <stack>
 #include <map>
@@ -102,11 +103,13 @@ std::vector<cv::Scalar> colorFrontiers(cv::Mat &frontier_img,
   return colors;
 }
 
-void loadStageWorld(std::string bitmap,
-                    cv::Size2f size,
+void loadStageWorld(std::string world_file,
                     const costmap_2d::Costmap2D& costmap,
                     cv::Mat &output_img)
 {
+  std::string bitmap = "/opt/ros/indigo/share/stage/worlds/bitmaps/cave.png";
+  cv::Size2f size(16, 16);
+
   cv::Mat resized_img;
   cv::Mat output_img_flipped;
   cv::Mat raw_img = cv::imread(bitmap, CV_LOAD_IMAGE_UNCHANGED);
@@ -195,10 +198,8 @@ std::vector<cv::Point> getClosestUnknowns(cv::Mat &occupancy_unknown_img,
             bool is_patch_zero = true;
             for (auto it = patch.begin<cv::Vec3b>(); it != patch.end<cv::Vec3b>(); it++)
             {
-              std::cout << *it << std::endl;
               if ((*it)[1] || (*it)[2])
               {
-                std::cout << patch << std::endl;
                 is_patch_zero = false;
                 break;
               }

@@ -55,13 +55,11 @@ std::vector<cv::Scalar> colorFrontiers(cv::Mat &frontier_img,
 
 /**
  * @brief load stage world into occupancy map
- * @param bitmap image
- * @param size size of the world
+ * @param world file of stage
  * @param costmap ros costmap_2d of the map being built
  * @param output_image occupancy map
  */
-void loadStageWorld(std::string bitmap,
-                    cv::Size2f size,
+void loadStageWorld(std::string world_file,
                     const costmap_2d::Costmap2D& costmap,
                     cv::Mat &output_img);
 

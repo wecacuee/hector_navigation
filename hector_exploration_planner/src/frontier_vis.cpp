@@ -53,7 +53,7 @@ void FrontierVis::publishVisOnDemand(cv::Mat frontiers_img,
   ROS_DEBUG_NAMED("state", "STARTED PUBLISHVIS");
   boost::lock_guard<boost::mutex> guard(mutex_);
   static cv::RNG rng(std::time(nullptr));
-  cv::Mat map(costmap.getSizeInCellsY(), costmap.getSizeInCellsY(), CV_8UC3, cv::Scalar(0, 0, 0));
+  cv::Mat map(costmap.getSizeInCellsY(), costmap.getSizeInCellsX(), CV_8UC3, cv::Scalar(0, 0, 0));
 
   cv::Mat preprocessed_frontier_img;
   frontier_analysis::preprocessFrontierImg(frontiers_img, preprocessed_frontier_img);
@@ -83,24 +83,25 @@ void FrontierVis::publishVisOnDemand(cv::Mat frontiers_img,
 
   // ------------------ groundtruth ------------------//
   // TODO: don't hard code these
-  {
-    cv::Mat groundtruth_occupancy_map;
-    frontier_analysis::loadStageWorld(
-      std::string("/opt/ros/indigo/share/stage/worlds/bitmaps/cave.png"), cv::Size2f(16, 16),
-      costmap,
-      groundtruth_occupancy_map
-    );
+  // {
+  //   cv::Mat groundtruth_occupancy_map;
+  //   frontier_analysis::loadStageWorld(
+  //     // std::string("/opt/ros/indigo/share/stage/worlds/bitmaps/cave.png"), cv::Size2f(16, 16),
+  //     "/opt/ros/indigo/share/stage/worlds/simple.world",
+  //     costmap,
+  //     groundtruth_occupancy_map
+  //   );
 
-    cv::Mat channels[3];
-    cv::split(map, channels);
-    channels[2] = groundtruth_occupancy_map;
-    cv::merge(channels, 3, map);
-  }
+  //   cv::Mat channels[3];
+  //   cv::split(map, channels);
+  //   channels[2] = groundtruth_occupancy_map;
+  //   cv::merge(channels, 3, map);
+  // }
 
   // ------------------ costmap ------------------//
   {
     auto raw_costmap = costmap.getCharMap();
-    cv::Mat raw_costmap_img(costmap.getSizeInCellsX(), costmap.getSizeInCellsY(), CV_8UC1, (void*)raw_costmap);
+    cv::Mat raw_costmap_img(costmap.getSizeInCellsY(), costmap.getSizeInCellsX(), CV_8UC1, (void*)raw_costmap);
     cv::Mat obstacle_costmap_img;
     cv::Mat free_costmap_img;
 

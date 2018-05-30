@@ -121,10 +121,10 @@ include_directories(
 #   src/${PROJECT_NAME}/hector_exploration_planner.cpp
 # )
 add_library(
-        ${PROJECT_NAME}
-        src/hector_exploration_planner.cpp
-        src/frontier_vis.cpp
-        src/frontier_analysis.cpp
+  ${PROJECT_NAME}
+  src/hector_exploration_planner.cpp
+  src/frontier_vis.cpp
+  src/frontier_analysis.cpp
 )
 add_library(hector_exploration_base_global_planner_plugin src/hector_exploration_base_global_planner_plugin.cpp)
 
@@ -142,6 +142,9 @@ add_dependencies(hector_exploration_base_global_planner_plugin ${PROJECT_NAME}_g
 #   ${catkin_LIBRARIES}
 # )
 
+# target_link_libraries(
+#   ${PROJECT_NAME}
+# )
 target_link_libraries(hector_exploration_base_global_planner_plugin ${PROJECT_NAME})
 
 #############
