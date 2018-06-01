@@ -1009,7 +1009,7 @@ bool HectorExplorationPlanner::buildexploration_trans_array_(const geometry_msgs
 
   ROS_DEBUG("[hector_exploration_planner] END: buildexploration_trans_array_");
 
-  drawExplorationTransform(exploration_trans_array_, *costmap_, exploration_trans_img_);
+//  drawExplorationTransform(exploration_trans_array_, *costmap_, exploration_trans_img_);
   vis_->publishVisOnDemand(*costmap_, exploration_trans_array_.get());
   return true;
 }
