@@ -96,6 +96,16 @@ public:
   float angleDifferenceWall(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
   bool exploreWalls(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> &goals);
 
+  /**
+   * @return image with frontier points (with size and resolution of costmap)
+   */
+  cv::Mat getFrontierImg() { return frontiers_img_; }
+
+  /**
+   * @return clustered frontier points in world coords
+   */
+  std::vector<std::vector<geometry_msgs::PoseStamped>> getClusteredFrontierPoints() { return all_frontiers_clustered; }
+
 private:
 
   enum LastMode{

@@ -104,15 +104,15 @@ void HectorExplorationPlanner::initialize(std::string name, costmap_2d::Costmap2
   obstacle_vis_.reset(new ExplorationTransformVis("obstacle_transform"));
   frontier_vis_.reset(new FrontierVis("frontier_img"));
 
-  frontiers_thread_.reset(
-    new boost::thread([this]() {
-      while (ros::ok()) {
-        updateFrontiers();
-        ros::Duration(0.5).sleep();
-      }
-    })
-  );
-  frontiers_thread_->detach();
+  // frontiers_thread_.reset(
+  //   new boost::thread([this]() {
+  //     while (ros::ok()) {
+  //       updateFrontiers();
+  //       ros::Duration(0.5).sleep();
+  //     }
+  //   })
+  // );
+  // frontiers_thread_->detach();
 }
 
 void HectorExplorationPlanner::dynRecParamCallback(hector_exploration_planner::ExplorationPlannerConfig &config, uint32_t level)

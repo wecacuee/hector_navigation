@@ -28,7 +28,7 @@ public:
                           const costmap_2d::Costmap2DROS& costmap_ros);
   static void drawPose(cv::Mat img, cv::Point, double yaw,
                        cv::Scalar point_color, cv::Scalar normal_color);
-  static void drawPoint(cv::Mat img, cv::Point point, cv::Scalar color);
+  static void drawPoint(cv::Mat &img, cv::Point point, cv::Scalar color);
 
 
 

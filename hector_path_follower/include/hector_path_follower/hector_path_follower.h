@@ -48,6 +48,8 @@ namespace pose_follower {
       bool setPlan(const std::vector<geometry_msgs::PoseStamped>& global_plan);
       bool computeVelocityCommands(geometry_msgs::Twist& cmd_vel);
 
+      bool stopped() { return is_stopped_; };
+
     private:
       inline double sign(double n){
         return n < 0.0 ? -1.0 : 1.0;
@@ -61,8 +63,7 @@ namespace pose_follower {
           std::vector<geometry_msgs::PoseStamped>& transformed_plan);
 
       //void odomCallback(const nav_msgs::Odometry::ConstPtr& msg);
-      bool stopped();
-
+      
       bool getRobotPose(tf::Stamped<tf::Pose>& global_pose) const;
 
       tf::TransformListener* tf_;
@@ -85,6 +86,8 @@ namespace pose_follower {
       std::vector<geometry_msgs::PoseStamped> global_plan_;
       //base_local_planner::TrajectoryPlannerROS collision_planner_;
       int samples_;
+
+      bool is_stopped_;
   };
 };
 #endif
