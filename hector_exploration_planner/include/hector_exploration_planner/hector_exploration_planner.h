@@ -131,13 +131,6 @@ private:
   /**
    * @brief clusters frontiers into blobs
    * @param allFrontiers vector of all frontier cells (input argument)
-   * @return whether the frontiers is empty
-   */
-  bool clusterFrontiers(std::vector<int> &allFrontiers);
-
-  /**
-   * @brief clusters frontiers into blobs
-   * @param allFrontiers vector of all frontier cells (input argument)
    * @param frontiers same as the frontiers param of findFrontiers method (output argument)
    * @return whether the frontiers is empty
    */
@@ -153,10 +146,22 @@ private:
    * @param frontierPoints frontiers in map (image) coordinates
    * @return whether the frontiers is empty
    */
-  bool clusterFrontiers(std::vector<int> &allFrontiers,
+//  bool clusterFrontiers(std::vector<int> &allFrontiers,
+//                        std::vector<geometry_msgs::PoseStamped> &frontiers,
+//                        std::vector<geometry_msgs::PoseStamped> &noFrontiers);
+//
+
+  /**
+   * @brief cluster frontiers, but just using index to represent a frontier
+   * @param all_frontiers
+   * @param frontier_clusters
+   * @return
+   */
+  bool clusterFrontiers(std::vector<int>& all_frontiers, std::vector<std::vector<int>>& frontier_clusters);
+
+  bool clusterFrontiers(std::vector<int>& all_frontiers,
                         std::vector<geometry_msgs::PoseStamped> &frontiers,
-                        std::vector<geometry_msgs::PoseStamped> &noFrontiers,
-                        std::vector<cv::Point> &frontierPoints);
+                        std::vector<std::vector<geometry_msgs::PoseStamped>>& frontier_clusters);
 
   void getStraightPoints(int point, int points[]);
   void getDiagonalPoints(int point, int points[]);
@@ -169,6 +174,19 @@ private:
   int downright(int point);
   int down(int point);
   int downleft(int point);
+  // construct a PoseStamped structure from int index
+  bool constructFrontier(int point, geometry_msgs::PoseStamped& frontier);
+  bool findAllFrontiers_index(std::vector<int>& allFrontiers);
+  bool findFrontiers_index(std::vector<int>& frontiers);
+//  bool clusterFrontiers_index(std::vector<int>& allFrontiers, std::vector<int>& frontiers);
+  bool centerOfFrontierCluster(std::vector<int>& frontier_clusters,
+                               geometry_msgs::PoseStamped& frontiers);
+  void visualizeFrontiers(std::vector<geometry_msgs::PoseStamped> &frontiers);
+
+
+
+
+
 
   ros::Publisher observation_pose_pub_;
   ros::Publisher goal_pose_pub_;
@@ -224,8 +242,10 @@ private:
   boost::shared_ptr<FrontierVis> frontier_vis_;
 
   std::vector<geometry_msgs::PoseStamped> frontiers_;
-  std::vector<geometry_msgs::PoseStamped> clustered_frontiers_; ///< clustered frontiers in world coordinates
-  std::vector<cv::Point> clustered_frontier_points_; ///< clustered frontiers in map (image) coordinates
+
+  std::vector<geometry_msgs::PoseStamped> clustered_frontiers_; ///< the center for each frontier cluster
+  std::vector<std::vector<geometry_msgs::PoseStamped>> all_frontiers_clustered; ///< for all frontier points in clusters
+
   boost::atomic_bool is_frontiers_found_;
   boost::mutex frontiers_mutex_;
   cv::Mat frontiers_img_;
