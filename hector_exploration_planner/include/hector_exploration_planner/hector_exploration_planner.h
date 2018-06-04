@@ -184,6 +184,10 @@ private:
   int downright(int point);
   int down(int point);
   int downleft(int point);
+
+  void getNeighbors(int point, int points[], int dis); // get all neighbors with distance < dis
+  int getNeigoborsNumber(int dis);  // get how many neighbors it has given distance < dis as neighbors
+
   // construct a PoseStamped structure from int index
   bool constructFrontier(int point, geometry_msgs::PoseStamped& frontier);
   bool findAllFrontiers_index(std::vector<int>& allFrontiers);
@@ -238,6 +242,9 @@ private:
   double p_obstacle_cutoff_dist_;
   bool p_use_observation_pose_calculation_;
   double p_observation_pose_desired_dist_;
+  // frontier parameters
+  int neighbor_distance = 5;
+  int cluster_min_number = 30;
 
   double p_cos_of_allowed_observation_pose_angle_;
   double p_close_to_path_target_distance_;
