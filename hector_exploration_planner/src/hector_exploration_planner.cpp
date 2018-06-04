@@ -1358,6 +1358,18 @@ bool HectorExplorationPlanner::centerOfFrontierCluster(std::vector<int>& frontie
   constructFrontier(index, frontiers);
 }
 
+bool HectorExplorationPlanner::max_obs_point_of_cluster(std::vector<int>& frontier_cluster,
+                              geometry_msgs::PoseStamped& frontiers)
+{
+    int max_obs_idx = frontier_cluster[0];
+    for(std::vector<int>::iterator cur = frontier_cluster.begin(); cur != frontier_cluster.end(); ++cur)
+    {
+        if (obstacle_trans_array_[*cur] > obstacle_trans_array_[max_obs_idx])
+            max_obs_idx = *cur;
+    }
+    constructFrontier(max_obs_idx, frontiers);
+}
+
 bool HectorExplorationPlanner::clusterFrontiers(std::vector<int>& all_frontiers,
                       std::vector<geometry_msgs::PoseStamped> &frontier_cluster_centers,
                       std::vector<std::vector<geometry_msgs::PoseStamped>>& frontier_clusters)
@@ -1375,7 +1387,8 @@ bool HectorExplorationPlanner::clusterFrontiers(std::vector<int>& all_frontiers,
       continue;
 
     geometry_msgs::PoseStamped frontier;
-    this->centerOfFrontierCluster(frontier_clusters_index[i], frontier);
+    // this->centerOfFrontierCluster(frontier_clusters_index[i], frontier);
+    this->max_obs_point_of_cluster(frontier_clusters_index[i], frontier);
     frontier_cluster_centers.push_back(frontier);
 
     // construct all frontier for each cluster
