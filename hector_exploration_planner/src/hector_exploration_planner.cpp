@@ -1358,6 +1358,18 @@ bool HectorExplorationPlanner::centerOfFrontierCluster(std::vector<int>& frontie
   constructFrontier(index, frontiers);
 }
 
+bool HectorExplorationPlanner::max_obs_point_of_cluster(std::vector<int>& frontier_cluster,
+                              geometry_msgs::PoseStamped& frontiers)
+{
+    int max_obs_idx = frontier_cluster[0];
+    for(std::vector<int>::iterator cur = frontier_cluster.begin(); cur != frontier_cluster.end(); ++cur)
+    {
+        if (obstacle_trans_array_[*cur] > obstacle_trans_array_[max_obs_idx])
+            max_obs_idx = *cur;
+    }
+    constructFrontier(max_obs_idx, frontiers);
+}
+
 bool HectorExplorationPlanner::clusterFrontiers(std::vector<int>& all_frontiers,
                       std::vector<geometry_msgs::PoseStamped> &frontier_cluster_centers,
                       std::vector<std::vector<geometry_msgs::PoseStamped>>& frontier_clusters)
@@ -1375,7 +1387,8 @@ bool HectorExplorationPlanner::clusterFrontiers(std::vector<int>& all_frontiers,
       continue;
 
     geometry_msgs::PoseStamped frontier;
-    this->centerOfFrontierCluster(frontier_clusters_index[i], frontier);
+    // this->centerOfFrontierCluster(frontier_clusters_index[i], frontier);
+    this->max_obs_point_of_cluster(frontier_clusters_index[i], frontier);
     frontier_cluster_centers.push_back(frontier);
 
     // construct all frontier for each cluster
@@ -1434,10 +1447,12 @@ bool HectorExplorationPlanner::clusterFrontiers(std::vector<int>& all_frontiers,
         frontier_cluster_map[idx] = cluster_id; //set value as cluster_id if the point has been visited
         single_cluster.push_back(idx);
 
-        // consider 8 neighborhood
-        int adjacentPoints[8];
+        // consider neighborhoods with distance = this->neighbor_distance
+        int neighbor_num = this->getNeigoborsNumber(this->neighbor_distance);
+        int adjacentPoints[neighbor_num];
+        getNeighbors(idx, adjacentPoints, this->neighbor_distance);
         getAdjacentPoints(idx,adjacentPoints);
-        for(int j = 0; j < 8; j++)
+        for(int j = 0; j < neighbor_num; j++)
         {
           // if it is valid points and its value is FRONTIER_VALUE and it has not been visited (not positive value)
           if(isValid(adjacentPoints[j]) && frontier_cluster_map[adjacentPoints[j]] == FRONTIER_VALUE)
@@ -1911,6 +1926,36 @@ inline void HectorExplorationPlanner::getStraightAndDiagonalPoints(int point, in
 
 }
 */
+
+void HectorExplorationPlanner::getNeighbors(int point, int points[], int dis)
+{
+  unsigned int mx, my;
+  int idx = 0;
+  costmap_->indexToCells(point, mx, my);
+  for(int dx = -dis; dx <= dis; dx++)
+  {
+    for(int dy = -dis; dy <= dis; dy++)
+    {
+      if(dx == 0 && dy == 0)
+        continue;
+      else
+      {
+        int x = mx + dx;
+        int y = my + dy;
+        if(x < 0 || x >= map_width_ || y < 0 || y >= map_height_)
+          points[idx++] = -1;
+        else
+          points[idx++] = costmap_->getIndex(x, y);
+      }
+    }
+  }
+}
+
+int HectorExplorationPlanner::getNeigoborsNumber(int dis)
+{
+  int l = dis * 2 + 1;
+  return l*l - 1;
+}
 
 inline void HectorExplorationPlanner::getAdjacentPoints(int point, int points[]){
 
