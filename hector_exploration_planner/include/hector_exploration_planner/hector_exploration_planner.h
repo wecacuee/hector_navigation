@@ -104,7 +104,11 @@ public:
   /**
    * @return clustered frontier points in world coords
    */
-  std::vector<std::vector<geometry_msgs::PoseStamped>> getClusteredFrontierPoints() { return all_frontiers_clustered; }
+  std::vector<std::vector<geometry_msgs::PoseStamped>> getClusteredFrontierPoints() 
+  { 
+    boost::mutex::scoped_lock lock(frontiers_mutex_);
+    return all_frontiers_clustered; 
+  }
 
 private:
 
