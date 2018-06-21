@@ -38,6 +38,10 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Twist.h>
 
+#include <dynamic_reconfigure/server.h>
+#include <hector_path_follower/HectorPathFollowerConfig.h>
+
+
 namespace pose_follower {
   class HectorPathFollower
   {
@@ -49,6 +53,11 @@ namespace pose_follower {
       bool computeVelocityCommands(geometry_msgs::Twist& cmd_vel);
 
       bool stopped() { return is_stopped_; };
+
+      void configCallback(hector_path_follower::HectorPathFollowerConfig &config, uint32_t level);
+
+    protected:
+      dynamic_reconfigure::Server<hector_path_follower::HectorPathFollowerConfig> dyn_reconf_server_;
 
     private:
       inline double sign(double n){

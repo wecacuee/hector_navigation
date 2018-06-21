@@ -66,10 +66,41 @@ namespace pose_follower {
     node_private.param("robot_base_frame", p_robot_base_frame_, std::string("base_link"));
     node_private.param("global_frame", p_global_frame_, std::string("map"));
 
+    dynamic_reconfigure::Server<hector_path_follower::HectorPathFollowerConfig>::CallbackType f;
+    dyn_reconf_server_.setCallback(boost::bind(&HectorPathFollower::configCallback, this, _1, _2));
+
     //ros::NodeHandle node;
     //vel_pub_ = node.advertise<geometry_msgs::Twist>("cmd_vel", 10);
 
     ROS_DEBUG("Initialized");
+  }
+
+  void HectorPathFollower::configCallback(hector_path_follower::HectorPathFollowerConfig &config, uint32_t level)
+  {
+    K_trans_  = config.k_trans;
+    K_rot_    = config.k_rot;
+
+    tolerance_trans_  = config.tolerance_trans;
+    tolerance_rot_    = config.tolerance_rot;
+    tolerance_timeout_= config.tolerance_timeout;
+
+    holonomic_ = config.holonomic;
+
+    samples_ = config.samples;
+
+    max_vel_lin_  = config.max_vel_lin;
+    max_vel_th_   = config.max_vel_th;
+
+    min_vel_lin_          = config.min_vel_lin;
+    min_vel_th_           = config.min_vel_th;
+    min_in_place_vel_th_  = config.min_in_place_vel_th;
+    in_place_trans_vel_   = config.in_place_trans_vel;
+
+    trans_stopped_velocity_ = config.trans_stopped_velocity;
+    rot_stopped_velocity_   = config.rot_stopped_velocity;
+
+    p_robot_base_frame_ = config.robot_base_frame;
+    p_global_frame_     = config.global_frame;
   }
 
   /*
