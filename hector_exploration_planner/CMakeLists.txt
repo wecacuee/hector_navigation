@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   image_transport
   cv_bridge
+  path_smoothing_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -134,7 +135,7 @@ add_library(hector_exploration_base_global_planner_plugin src/hector_exploration
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(hector_exploration_planner_node hector_exploration_planner_generate_messages_cpp)
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg ${catkin_EXPORTED_TARGETS})
 add_dependencies(hector_exploration_base_global_planner_plugin ${PROJECT_NAME}_gencfg)
 
 ## Specify libraries to link a library or executable target against

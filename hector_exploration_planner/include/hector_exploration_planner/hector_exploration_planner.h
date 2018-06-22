@@ -38,6 +38,8 @@
 
 #include <hector_exploration_planner/exploration_transform_vis.h>
 #include <hector_exploration_planner/frontier_vis.h>
+#include <path_smoothing_ros/cubic_spline_interpolator.h>
+
 
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
@@ -246,6 +248,15 @@ private:
   double p_obstacle_cutoff_dist_;
   bool p_use_observation_pose_calculation_;
   double p_observation_pose_desired_dist_;
+
+  // path smoothing params
+  int smoothed_points_per_unit_;
+  int smoothed_points_throttle_;
+  bool smoothed_use_end_conditions_;
+  bool smoothed_use_middle_conditions_;
+  boost::shared_ptr<path_smoothing::CubicSplineInterpolator> path_smoother_;
+  boost::mutex path_smoother_mutex_;
+
   // frontier parameters
   int neighbor_distance = 5;
   int cluster_min_number = 25;

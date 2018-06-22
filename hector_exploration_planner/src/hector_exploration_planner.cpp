@@ -133,6 +133,19 @@ void HectorExplorationPlanner::dynRecParamCallback(hector_exploration_planner::E
   double angle_rad = config.observation_pose_allowed_angle * (M_PI / 180.0);
   p_cos_of_allowed_observation_pose_angle_ = cos(angle_rad);
   p_close_to_path_target_distance_ = config.close_to_path_target_distance;
+
+  smoothed_points_per_unit_ = config.smoothed_points_per_unit;
+  smoothed_points_throttle_ = config.smoothed_points_throttle;
+  smoothed_use_end_conditions_ = config.smoothed_use_end_conditions;
+  smoothed_use_middle_conditions_ = config.smoothed_use_middle_conditions;
+
+  {
+    boost::mutex::scoped_lock lock(path_smoother_mutex_);
+    path_smoother_.reset(new path_smoothing::CubicSplineInterpolator(
+      smoothed_points_per_unit_, smoothed_points_throttle_, smoothed_use_end_conditions_,
+      smoothed_use_middle_conditions_
+    ));
+  }
 }
 
 bool HectorExplorationPlanner::makePlan(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &original_goal, std::vector<geometry_msgs::PoseStamped> &plan){
@@ -1161,6 +1174,31 @@ bool HectorExplorationPlanner::getTrajectory(const geometry_msgs::PoseStamped &s
 
     currentPoint = nextPoint;
     maxDelta = 0;
+  }
+
+  if (path_smoother_ && plan.size() > smoothed_points_per_unit_)
+  {
+    nav_msgs::Path original_path;
+    original_path.header.frame_id = global_frame;
+    original_path.header.stamp = ros::Time::now();
+    original_path.poses = plan;
+
+    nav_msgs::Path smoothed_path;
+    {
+      boost::mutex::scoped_lock lock(path_smoother_mutex_);
+      path_smoother_->interpolatePath(original_path, smoothed_path);
+    }
+    plan = smoothed_path.poses;
+
+    for (int i = 1, len = plan.size() - 1; i < len; i++)
+    {
+      auto dx = plan[i].pose.position.x - plan[i-1].pose.position.x;
+      auto dy = plan[i].pose.position.y - plan[i-1].pose.position.y;
+      auto yaw_path = std::atan2(dy,dx);
+      plan[i].pose.orientation.z = std::sin(yaw_path * 0.5);
+      plan[i].pose.orientation.w = std::cos(yaw_path * 0.5);
+    }
+
   }
 
   ROS_DEBUG("[hector_exploration_planner] END: getTrajectory. Plansize %u", (unsigned int)plan.size());

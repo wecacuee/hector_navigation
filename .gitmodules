@@ -1,0 +1,3 @@
+[submodule "path-smoothing-ros"]
+	path = path-smoothing-ros
+	url = https://github.com/gkouros/path-smoothing-ros.git

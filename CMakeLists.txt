@@ -7,6 +7,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules")
 
 find_package(Eigen3 REQUIRED)
 
+add_subdirectory(path-smoothing-ros)
+
 # install these 5 first (other packages depends on them)
 add_subdirectory(hector_elevation_msgs)
 add_subdirectory(hector_path_follower)
