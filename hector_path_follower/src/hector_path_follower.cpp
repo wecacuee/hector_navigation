@@ -33,13 +33,13 @@
 
 
 namespace pose_follower {
-  HectorPathFollower::HectorPathFollower(): tf_(NULL), is_stopped_(true) {}
+  HectorPathFollower::HectorPathFollower(): tf_(NULL), is_stopped_(true), dyn_reconf_server_(ros::NodeHandle("~")) {}
 
   void HectorPathFollower::initialize(tf::TransformListener* tf) {
     tf_ = tf;
     current_waypoint_ = 0;
     goal_reached_time_ = ros::Time::now();
-    ros::NodeHandle node_private("~/");
+    ros::NodeHandle node_private("~");
 
     node_private.param("k_trans", K_trans_, 2.0);
     node_private.param("k_rot", K_rot_, 2.0);
@@ -66,8 +66,9 @@ namespace pose_follower {
     node_private.param("robot_base_frame", p_robot_base_frame_, std::string("base_link"));
     node_private.param("global_frame", p_global_frame_, std::string("map"));
 
-    dynamic_reconfigure::Server<hector_path_follower::HectorPathFollowerConfig>::CallbackType f;
-    dyn_reconf_server_.setCallback(boost::bind(&HectorPathFollower::configCallback, this, _1, _2));
+    dyn_reconf_server_.setCallback(dynamic_reconfigure_t::CallbackType(
+      boost::bind(&HectorPathFollower::configCallback, this, _1, _2))
+    );
 
     //ros::NodeHandle node;
     //vel_pub_ = node.advertise<geometry_msgs::Twist>("cmd_vel", 10);
@@ -77,6 +78,8 @@ namespace pose_follower {
 
   void HectorPathFollower::configCallback(hector_path_follower::HectorPathFollowerConfig &config, uint32_t level)
   {
+    boost::mutex::scoped_lock lock(config_mutex_);
+
     K_trans_  = config.k_trans;
     K_rot_    = config.k_rot;
 

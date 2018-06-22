@@ -41,7 +41,6 @@
 #include <dynamic_reconfigure/server.h>
 #include <hector_path_follower/HectorPathFollowerConfig.h>
 
-
 namespace pose_follower {
   class HectorPathFollower
   {
@@ -56,8 +55,10 @@ namespace pose_follower {
 
       void configCallback(hector_path_follower::HectorPathFollowerConfig &config, uint32_t level);
 
+      typedef dynamic_reconfigure::Server<hector_path_follower::HectorPathFollowerConfig> dynamic_reconfigure_t;
     protected:
-      dynamic_reconfigure::Server<hector_path_follower::HectorPathFollowerConfig> dyn_reconf_server_;
+      dynamic_reconfigure_t dyn_reconf_server_;
+      boost::mutex config_mutex_;
 
     private:
       inline double sign(double n){
