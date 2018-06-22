@@ -250,6 +250,7 @@ private:
   double p_observation_pose_desired_dist_;
 
   // path smoothing params
+  bool smoothing_enabled_;
   int smoothed_points_per_unit_;
   int smoothed_points_throttle_;
   bool smoothed_use_end_conditions_;
