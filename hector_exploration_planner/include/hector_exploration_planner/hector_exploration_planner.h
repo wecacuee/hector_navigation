@@ -29,10 +29,15 @@
 #ifndef HECTOR_EXPLORATION_PLANNER_H___
 #define HECTOR_EXPLORATION_PLANNER_H___
 
+#define USE_CUSTOM_POSE
+// #undef USE_CUSTOM_POSE
+
+
 #include <ros/ros.h>
 #include <costmap_2d/costmap_2d.h>
 #include <costmap_2d/costmap_2d_ros.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <nav_msgs/Odometry.h>
 
 #include <dynamic_reconfigure/server.h>
 
@@ -111,6 +116,22 @@ public:
     boost::mutex::scoped_lock lock(frontiers_mutex_);
     return all_frontiers_clustered; 
   }
+
+#ifdef USE_CUSTOM_POSE
+  /**
+   * @brief set robot pose (odom)
+   */
+  inline void setRobotOdom(const nav_msgs::OdometryConstPtr &odom)
+  {
+    boost::mutex::scoped_lock lock(robot_odom_mutex_);
+    robot_odom_ = *odom;
+  }
+
+  /**
+   * @brief get robot pose
+   */
+  bool getRobotPose(tf::Stamped<tf::Pose>& global_pose);
+#endif
 
 private:
 
@@ -284,6 +305,12 @@ private:
   cv::Mat frontiers_img_;
 
   boost::shared_ptr<boost::thread> frontiers_thread_;
+
+#ifdef USE_CUSTOM_POSE
+  boost::mutex robot_odom_mutex_;
+  nav_msgs::Odometry robot_odom_;
+#endif
+
 
 };
 }

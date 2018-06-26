@@ -37,9 +37,15 @@
 #include <tf/transform_listener.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Twist.h>
+#include <nav_msgs/Odometry.h>
+
+#include <boost/thread/mutex.hpp>
 
 #include <dynamic_reconfigure/server.h>
 #include <hector_path_follower/HectorPathFollowerConfig.h>
+
+#define USE_CUSTOM_POSE
+// #undef USE_CUSTOM_POSE
 
 namespace pose_follower {
   class HectorPathFollower
@@ -56,6 +62,18 @@ namespace pose_follower {
       void configCallback(hector_path_follower::HectorPathFollowerConfig &config, uint32_t level);
 
       typedef dynamic_reconfigure::Server<hector_path_follower::HectorPathFollowerConfig> dynamic_reconfigure_t;
+
+#ifdef USE_CUSTOM_POSE
+      /**
+       * @brief set robot pose (odom)
+       */
+      inline void setRobotOdom(const nav_msgs::OdometryConstPtr &odom)
+      {
+        boost::mutex::scoped_lock lock(robot_odom_mutex_);
+        robot_odom_ = *odom;
+      }
+#endif
+
     protected:
       dynamic_reconfigure_t dyn_reconf_server_;
       boost::mutex config_mutex_;
@@ -74,7 +92,7 @@ namespace pose_follower {
 
       //void odomCallback(const nav_msgs::Odometry::ConstPtr& msg);
       
-      bool getRobotPose(tf::Stamped<tf::Pose>& global_pose) const;
+      bool getRobotPose(tf::Stamped<tf::Pose>& global_pose);
 
       tf::TransformListener* tf_;
 
@@ -98,6 +116,11 @@ namespace pose_follower {
       int samples_;
 
       bool is_stopped_;
-  };
+
+#ifdef USE_CUSTOM_POSE
+      boost::mutex robot_odom_mutex_;
+      nav_msgs::Odometry robot_odom_;
+#endif
+};
 };
 #endif

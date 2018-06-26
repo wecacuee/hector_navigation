@@ -351,6 +351,9 @@ namespace pose_follower {
   bool HectorPathFollower::transformGlobalPlan(const tf::TransformListener& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan,
       const std::string& global_frame,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan){
+#ifdef USE_CUSTOM_POSE
+    transformed_plan = global_plan;
+#else
     const geometry_msgs::PoseStamped& plan_pose = global_plan[0];
 
     transformed_plan.clear();
@@ -398,10 +401,27 @@ namespace pose_follower {
     }
 
     return true;
+#endif
   }
 
 
-  bool HectorPathFollower::getRobotPose(tf::Stamped<tf::Pose>& global_pose) const {
+#ifdef USE_CUSTOM_POSE
+  bool HectorPathFollower::getRobotPose(tf::Stamped<tf::Pose>& global_pose) {
+    nav_msgs::Odometry odom;
+    {
+      boost::mutex::scoped_lock lock(robot_odom_mutex_);
+      odom = robot_odom_ ;
+    }
+
+    tf::Pose pose;
+    tf::poseMsgToTF(odom.pose.pose, pose);
+
+    global_pose = tf::Stamped<tf::Pose>(pose, odom.header.stamp, odom.header.frame_id);
+
+    return true;
+  }
+#else
+  bool HectorPathFollower::getRobotPose(tf::Stamped<tf::Pose>& global_pose) {
 
     global_pose.setIdentity();
     tf::Stamped<tf::Pose> robot_pose;
@@ -439,4 +459,5 @@ namespace pose_follower {
 
     return true;
   }
+#endif
 };

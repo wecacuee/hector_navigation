@@ -330,7 +330,11 @@ bool HectorExplorationPlanner::doInnerExploration(const geometry_msgs::PoseStamp
   if (last_mode_ == INNER_EXPLORE){
 
     tf::Stamped<tf::Pose> robotPose;
-    if(!costmap_ros_->getRobotPose(robotPose)){
+#ifdef USE_CUSTOM_POSE
+    if (!getRobotPose(robotPose)) {
+#else
+    if(!costmap_ros_->getRobotPose(robotPose)) {
+#endif
       ROS_WARN("[hector_exploration_planner]: Failed to get RobotPose");
     }
 
@@ -1302,7 +1306,11 @@ bool HectorExplorationPlanner::findFrontiersCloseToPath(std::vector<geometry_msg
 
         // make exploration transform
         tf::Stamped<tf::Pose> robotPose;
-        if(!costmap_ros_->getRobotPose(robotPose)){
+#ifdef USE_CUSTOM_POSE
+    if (!getRobotPose(robotPose)) {
+#else
+    if(!costmap_ros_->getRobotPose(robotPose)) {
+#endif
           ROS_WARN("[hector_exploration_planner]: Failed to get RobotPose");
         }
         geometry_msgs::PoseStamped robotPoseMsg;
@@ -1602,7 +1610,11 @@ bool HectorExplorationPlanner::findInnerFrontier(std::vector<geometry_msgs::Pose
 
       // make exploration transform
       tf::Stamped<tf::Pose> robotPose;
-      if(!costmap_ros_->getRobotPose(robotPose)){
+#ifdef USE_CUSTOM_POSE
+    if (!getRobotPose(robotPose)) {
+#else
+    if(!costmap_ros_->getRobotPose(robotPose)) {
+#endif
         ROS_WARN("[hector_exploration_planner]: Failed to get RobotPose");
       }
       geometry_msgs::PoseStamped robotPoseMsg;
@@ -1789,7 +1801,11 @@ bool HectorExplorationPlanner::isFreeFrontiers(int point){
 bool HectorExplorationPlanner::isFrontierReached(int point){
 
   tf::Stamped<tf::Pose> robotPose;
-  if(!costmap_ros_->getRobotPose(robotPose)){
+#ifdef USE_CUSTOM_POSE
+    if (!getRobotPose(robotPose)) {
+#else
+    if(!costmap_ros_->getRobotPose(robotPose)) {
+#endif
     ROS_WARN("[hector_exploration_planner]: Failed to get RobotPose");
   }
   geometry_msgs::PoseStamped robotPoseMsg;
@@ -2054,6 +2070,24 @@ inline int HectorExplorationPlanner::downleft(int point){
   return -1;
 
 }
+
+#ifdef USE_CUSTOM_POSE
+inline bool HectorExplorationPlanner::getRobotPose(tf::Stamped<tf::Pose>& global_pose)
+{
+  nav_msgs::Odometry odom;
+  {
+    boost::mutex::scoped_lock lock(robot_odom_mutex_);
+    odom = robot_odom_ ;
+  }
+
+  tf::Pose pose;
+  tf::poseMsgToTF(odom.pose.pose, pose);
+
+  global_pose = tf::Stamped<tf::Pose>(pose, odom.header.stamp, odom.header.frame_id);
+
+  return true;
+}
+#endif
 
 //        // visualization (export to another method?)
 //        visualization_msgs::Marker marker;
