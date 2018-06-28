@@ -7,6 +7,7 @@ project(hector_exploration_node)
 find_package(catkin REQUIRED COMPONENTS
   hector_exploration_planner
   hector_nav_msgs
+  path_smoothing_ros
 )
 
 ## System dependencies are found with CMake's conventions
