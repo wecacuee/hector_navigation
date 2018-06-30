@@ -31,9 +31,22 @@
 *********************************************************************/
 #include <hector_path_follower/hector_path_follower.h>
 
+/* definition to expand macro then apply to pragma message */
+#define VALUE_TO_STRING(x) #x
+#define VALUE(x) VALUE_TO_STRING(x)
+#define VAR_NAME_VALUE(var) #var "="  VALUE(var)
+
+#pragma message(VAR_NAME_VALUE(USE_CUSTOM_POSE))
 
 namespace pose_follower {
-  HectorPathFollower::HectorPathFollower(): tf_(NULL), is_stopped_(true), dyn_reconf_server_(ros::NodeHandle("~")) {}
+  HectorPathFollower::HectorPathFollower(): tf_(NULL), is_stopped_(true), dyn_reconf_server_(ros::NodeHandle("~"))
+  {
+#if USE_CUSTOM_POSE
+    ROS_INFO("[hector_path_follower] Using custom pose");
+#else
+    ROS_INFO("[hector_path_follower] Using tf pose");
+#endif
+  }
 
   void HectorPathFollower::initialize(tf::TransformListener* tf) {
     tf_ = tf;
@@ -73,7 +86,7 @@ namespace pose_follower {
     //ros::NodeHandle node;
     //vel_pub_ = node.advertise<geometry_msgs::Twist>("cmd_vel", 10);
 
-    ROS_DEBUG("Initialized");
+    ROS_DEBUG("[hector_path_follower] Initialized");
   }
 
   void HectorPathFollower::configCallback(hector_path_follower::HectorPathFollowerConfig &config, uint32_t level)
@@ -157,7 +170,7 @@ namespace pose_follower {
     //get the current pose of the robot in the fixed frame
     tf::Stamped<tf::Pose> robot_pose;
     if(!this->getRobotPose(robot_pose)){
-      ROS_ERROR("Can't get robot pose");
+      ROS_ERROR("[hector_path_follower] Can't get robot pose");
       geometry_msgs::Twist empty_twist;
       cmd_vel = empty_twist;
       is_stopped_ = true;
@@ -351,7 +364,7 @@ namespace pose_follower {
   bool HectorPathFollower::transformGlobalPlan(const tf::TransformListener& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan,
       const std::string& global_frame,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan){
-#ifdef USE_CUSTOM_POSE
+#if USE_CUSTOM_POSE
     transformed_plan = global_plan;
 #else
     const geometry_msgs::PoseStamped& plan_pose = global_plan[0];
@@ -385,17 +398,17 @@ namespace pose_follower {
       }
     }
     catch(tf::LookupException& ex) {
-      ROS_ERROR("No Transform available Error: %s\n", ex.what());
+      ROS_ERROR("[hector_path_follower] No Transform available Error: %s\n", ex.what());
       return false;
     }
     catch(tf::ConnectivityException& ex) {
-      ROS_ERROR("Connectivity Error: %s\n", ex.what());
+      ROS_ERROR("[hector_path_follower] Connectivity Error: %s\n", ex.what());
       return false;
     }
     catch(tf::ExtrapolationException& ex) {
-      ROS_ERROR("Extrapolation Error: %s\n", ex.what());
+      ROS_ERROR("[hector_path_follower] Extrapolation Error: %s\n", ex.what());
       if (global_plan.size() > 0)
-        ROS_ERROR("Global Frame: %s Plan Frame size %d: %s\n", global_frame.c_str(), (unsigned int)global_plan.size(), global_plan[0].header.frame_id.c_str());
+        ROS_ERROR("[hector_path_follower] Global Frame: %s Plan Frame size %d: %s\n", global_frame.c_str(), (unsigned int)global_plan.size(), global_plan[0].header.frame_id.c_str());
 
       return false;
     }
@@ -405,7 +418,7 @@ namespace pose_follower {
   }
 
 
-#ifdef USE_CUSTOM_POSE
+#if USE_CUSTOM_POSE
   bool HectorPathFollower::getRobotPose(tf::Stamped<tf::Pose>& global_pose) {
     nav_msgs::Odometry odom;
     {
@@ -435,15 +448,15 @@ namespace pose_follower {
       tf_->transformPose(p_global_frame_, robot_pose, global_pose);
     }
     catch(tf::LookupException& ex) {
-      ROS_ERROR_THROTTLE(1.0, "No Transform available Error looking up robot pose: %s\n", ex.what());
+      ROS_ERROR_THROTTLE(1.0, "[hector_path_follower] No Transform available Error looking up robot pose: %s\n", ex.what());
       return false;
     }
     catch(tf::ConnectivityException& ex) {
-      ROS_ERROR_THROTTLE(1.0, "Connectivity Error looking up robot pose: %s\n", ex.what());
+      ROS_ERROR_THROTTLE(1.0, "[hector_path_follower] Connectivity Error looking up robot pose: %s\n", ex.what());
       return false;
     }
     catch(tf::ExtrapolationException& ex) {
-      ROS_ERROR_THROTTLE(1.0, "Extrapolation Error looking up robot pose: %s\n", ex.what());
+      ROS_ERROR_THROTTLE(1.0, "[hector_path_follower] Extrapolation Error looking up robot pose: %s\n", ex.what());
       return false;
     }
     // check global_pose timeout

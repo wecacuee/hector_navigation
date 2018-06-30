@@ -44,7 +44,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <hector_path_follower/HectorPathFollowerConfig.h>
 
-#define USE_CUSTOM_POSE
+#define USE_CUSTOM_POSE 1
 // #undef USE_CUSTOM_POSE
 
 namespace pose_follower {
@@ -63,7 +63,7 @@ namespace pose_follower {
 
       typedef dynamic_reconfigure::Server<hector_path_follower::HectorPathFollowerConfig> dynamic_reconfigure_t;
 
-#ifdef USE_CUSTOM_POSE
+#if USE_CUSTOM_POSE
       /**
        * @brief set robot pose (odom)
        */
@@ -117,7 +117,7 @@ namespace pose_follower {
 
       bool is_stopped_;
 
-#ifdef USE_CUSTOM_POSE
+#if USE_CUSTOM_POSE
       boost::mutex robot_odom_mutex_;
       nav_msgs::Odometry robot_odom_;
 #endif
