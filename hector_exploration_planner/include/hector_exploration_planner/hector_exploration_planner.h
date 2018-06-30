@@ -29,13 +29,8 @@
 #ifndef HECTOR_EXPLORATION_PLANNER_H___
 #define HECTOR_EXPLORATION_PLANNER_H___
 
-#define USE_CUSTOM_POSE
-// #undef USE_CUSTOM_POSE
-
-
 #include <ros/ros.h>
-#include <costmap_2d/costmap_2d.h>
-#include <costmap_2d/costmap_2d_ros.h>
+#include <hector_exploration_planner/custom_costmap_2d_ros.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Odometry.h>
 
@@ -61,8 +56,8 @@ class HectorExplorationPlanner {
 public:
   HectorExplorationPlanner();
   ~HectorExplorationPlanner();
-  HectorExplorationPlanner(std::string name,costmap_2d::Costmap2DROS *costmap_ros);
-  void initialize(std::string name,costmap_2d::Costmap2DROS *costmap_ros);
+  HectorExplorationPlanner(std::string name, hector_exploration_planner::CustomCostmap2DROS *costmap_ros);
+  void initialize(std::string name,hector_exploration_planner::CustomCostmap2DROS *costmap_ros);
 
   void dynRecParamCallback(hector_exploration_planner::ExplorationPlannerConfig &config, uint32_t level);
 
@@ -116,22 +111,6 @@ public:
     boost::mutex::scoped_lock lock(frontiers_mutex_);
     return all_frontiers_clustered; 
   }
-
-#ifdef USE_CUSTOM_POSE
-  /**
-   * @brief set robot pose (odom)
-   */
-  inline void setRobotOdom(const nav_msgs::OdometryConstPtr &odom)
-  {
-    boost::mutex::scoped_lock lock(robot_odom_mutex_);
-    robot_odom_ = *odom;
-  }
-
-  /**
-   * @brief get robot pose
-   */
-  bool getRobotPose(tf::Stamped<tf::Pose>& global_pose);
-#endif
 
 private:
 
@@ -234,7 +213,7 @@ private:
 
   ros::Publisher visualization_pub_;
   ros::ServiceClient path_service_client_;
-  costmap_2d::Costmap2DROS* costmap_ros_;
+  hector_exploration_planner::CustomCostmap2DROS* costmap_ros_;
   costmap_2d::Costmap2D* costmap_;
 
   const unsigned char* occupancy_grid_array_;
@@ -305,12 +284,6 @@ private:
   cv::Mat frontiers_img_;
 
   boost::shared_ptr<boost::thread> frontiers_thread_;
-
-#ifdef USE_CUSTOM_POSE
-  boost::mutex robot_odom_mutex_;
-  nav_msgs::Odometry robot_odom_;
-#endif
-
 
 };
 }

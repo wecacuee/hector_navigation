@@ -124,6 +124,7 @@ include_directories(
 add_library(
   ${PROJECT_NAME}
   src/hector_exploration_planner.cpp
+  src/custom_costmap_2d_ros.cpp
   src/frontier_vis.cpp
   src/frontier_analysis.cpp
 )

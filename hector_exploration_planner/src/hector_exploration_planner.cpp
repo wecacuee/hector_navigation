@@ -43,6 +43,14 @@
 
 using namespace hector_exploration_planner;
 
+/* definition to expand macro then apply to pragma message */
+#define VALUE_TO_STRING(x) #x
+#define VALUE(x) VALUE_TO_STRING(x)
+#define VAR_NAME_VALUE(var) #var "="  VALUE(var)
+
+#pragma message(VAR_NAME_VALUE(USE_CUSTOM_POSE))
+
+
 HectorExplorationPlanner::HectorExplorationPlanner()
 : costmap_ros_(0)
 , costmap_(0)
@@ -50,18 +58,24 @@ HectorExplorationPlanner::HectorExplorationPlanner()
 , map_width_(0)
 , map_height_(0)
 , num_map_cells_(0)
-{}
+{
+#if USE_CUSTOM_POSE
+  ROS_INFO("[hector_exploration_planner] Using custom pose");
+#else
+  ROS_INFO("[hector_exploration_planner] Using tf pose");
+#endif
+}
 
 HectorExplorationPlanner::~HectorExplorationPlanner(){
   this->deleteMapData();
 }
 
-HectorExplorationPlanner::HectorExplorationPlanner(std::string name, costmap_2d::Costmap2DROS *costmap_ros_in) :
+HectorExplorationPlanner::HectorExplorationPlanner(std::string name, hector_exploration_planner::CustomCostmap2DROS *costmap_ros_in) :
 costmap_ros_(NULL), initialized_(false), is_frontiers_found_(false) {
   HectorExplorationPlanner::initialize(name, costmap_ros_in);
 }
 
-void HectorExplorationPlanner::initialize(std::string name, costmap_2d::Costmap2DROS *costmap_ros_in){
+void HectorExplorationPlanner::initialize(std::string name, hector_exploration_planner::CustomCostmap2DROS *costmap_ros_in){
 
   last_mode_ = FRONTIER_EXPLORE;
   // unknown: 255, obstacle 254, inflated: 253, free: 0
@@ -330,11 +344,8 @@ bool HectorExplorationPlanner::doInnerExploration(const geometry_msgs::PoseStamp
   if (last_mode_ == INNER_EXPLORE){
 
     tf::Stamped<tf::Pose> robotPose;
-#ifdef USE_CUSTOM_POSE
-    if (!getRobotPose(robotPose)) {
-#else
+
     if(!costmap_ros_->getRobotPose(robotPose)) {
-#endif
       ROS_WARN("[hector_exploration_planner]: Failed to get RobotPose");
     }
 
@@ -1306,11 +1317,8 @@ bool HectorExplorationPlanner::findFrontiersCloseToPath(std::vector<geometry_msg
 
         // make exploration transform
         tf::Stamped<tf::Pose> robotPose;
-#ifdef USE_CUSTOM_POSE
-    if (!getRobotPose(robotPose)) {
-#else
-    if(!costmap_ros_->getRobotPose(robotPose)) {
-#endif
+
+        if(!costmap_ros_->getRobotPose(robotPose)) {
           ROS_WARN("[hector_exploration_planner]: Failed to get RobotPose");
         }
         geometry_msgs::PoseStamped robotPoseMsg;
@@ -1610,11 +1618,8 @@ bool HectorExplorationPlanner::findInnerFrontier(std::vector<geometry_msgs::Pose
 
       // make exploration transform
       tf::Stamped<tf::Pose> robotPose;
-#ifdef USE_CUSTOM_POSE
-    if (!getRobotPose(robotPose)) {
-#else
-    if(!costmap_ros_->getRobotPose(robotPose)) {
-#endif
+
+      if(!costmap_ros_->getRobotPose(robotPose)) {
         ROS_WARN("[hector_exploration_planner]: Failed to get RobotPose");
       }
       geometry_msgs::PoseStamped robotPoseMsg;
@@ -1801,11 +1806,8 @@ bool HectorExplorationPlanner::isFreeFrontiers(int point){
 bool HectorExplorationPlanner::isFrontierReached(int point){
 
   tf::Stamped<tf::Pose> robotPose;
-#ifdef USE_CUSTOM_POSE
-    if (!getRobotPose(robotPose)) {
-#else
-    if(!costmap_ros_->getRobotPose(robotPose)) {
-#endif
+
+  if(!costmap_ros_->getRobotPose(robotPose)) {
     ROS_WARN("[hector_exploration_planner]: Failed to get RobotPose");
   }
   geometry_msgs::PoseStamped robotPoseMsg;
@@ -2070,24 +2072,6 @@ inline int HectorExplorationPlanner::downleft(int point){
   return -1;
 
 }
-
-#ifdef USE_CUSTOM_POSE
-inline bool HectorExplorationPlanner::getRobotPose(tf::Stamped<tf::Pose>& global_pose)
-{
-  nav_msgs::Odometry odom;
-  {
-    boost::mutex::scoped_lock lock(robot_odom_mutex_);
-    odom = robot_odom_ ;
-  }
-
-  tf::Pose pose;
-  tf::poseMsgToTF(odom.pose.pose, pose);
-
-  global_pose = tf::Stamped<tf::Pose>(pose, odom.header.stamp, odom.header.frame_id);
-
-  return true;
-}
-#endif
 
 //        // visualization (export to another method?)
 //        visualization_msgs::Marker marker;
