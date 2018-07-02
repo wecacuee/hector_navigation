@@ -214,6 +214,8 @@ public:
     robot_odom_ = *odom;
   }
 
+  void mapUpdateOnce();
+  
 protected:
   LayeredCostmap* layered_costmap_;
   std::string name_;

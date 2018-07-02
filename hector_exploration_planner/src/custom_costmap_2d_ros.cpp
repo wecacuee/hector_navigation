@@ -401,6 +401,35 @@ void CustomCostmap2DROS::movementCB(const ros::TimerEvent &event)
   }
 }
 
+void CustomCostmap2DROS::mapUpdateOnce()
+{
+  struct timeval start, end;
+  double start_t, end_t, t_diff;
+  gettimeofday(&start, NULL);
+
+  updateMap();
+
+  gettimeofday(&end, NULL);
+  start_t = start.tv_sec + double(start.tv_usec) / 1e6;
+  end_t = end.tv_sec + double(end.tv_usec) / 1e6;
+  t_diff = end_t - start_t;
+  ROS_DEBUG("Map update time: %.9f", t_diff);
+  if (publish_cycle.toSec() > 0 && layered_costmap_->isInitialized())
+  {
+    unsigned int x0, y0, xn, yn;
+    layered_costmap_->getBounds(&x0, &xn, &y0, &yn);
+    publisher_->updateBounds(x0, xn, y0, yn);
+
+    ros::Time now = ros::Time::now();
+    if (last_publish_ + publish_cycle < now)
+    {
+      publisher_->publishCostmap();
+      last_publish_ = now;
+    }
+  }
+
+}
+
 void CustomCostmap2DROS::mapUpdateLoop(double frequency)
 {
   // the user might not want to run the loop every cycle
@@ -411,30 +440,8 @@ void CustomCostmap2DROS::mapUpdateLoop(double frequency)
   ros::Rate r(frequency);
   while (nh.ok() && !map_update_thread_shutdown_)
   {
-    struct timeval start, end;
-    double start_t, end_t, t_diff;
-    gettimeofday(&start, NULL);
+    mapUpdateOnce();
 
-    updateMap();
-
-    gettimeofday(&end, NULL);
-    start_t = start.tv_sec + double(start.tv_usec) / 1e6;
-    end_t = end.tv_sec + double(end.tv_usec) / 1e6;
-    t_diff = end_t - start_t;
-    ROS_DEBUG("Map update time: %.9f", t_diff);
-    if (publish_cycle.toSec() > 0 && layered_costmap_->isInitialized())
-    {
-      unsigned int x0, y0, xn, yn;
-      layered_costmap_->getBounds(&x0, &xn, &y0, &yn);
-      publisher_->updateBounds(x0, xn, y0, yn);
-
-      ros::Time now = ros::Time::now();
-      if (last_publish_ + publish_cycle < now)
-      {
-        publisher_->publishCostmap();
-        last_publish_ = now;
-      }
-    }
     r.sleep();
     // make sure to sleep for the remainder of our cycle time
     if (r.cycleTime() > ros::Duration(1 / frequency))
