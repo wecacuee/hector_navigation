@@ -232,7 +232,7 @@ namespace pose_follower {
     {
       if(current_waypoint_ < global_plan_.size() - 1)
       {
-  current_waypoint_++;
+        current_waypoint_++;
         tf::poseStampedMsgToTF(global_plan_[current_waypoint_], target_pose);
         diff = diff2D(target_pose, robot_pose);
       }
