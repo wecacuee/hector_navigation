@@ -1200,11 +1200,42 @@ bool HectorExplorationPlanner::getTrajectory(const geometry_msgs::PoseStamped &s
     original_path.header.stamp = ros::Time::now();
     original_path.poses = plan;
 
+    auto check_path_consistency_lambda = [this](nav_msgs::Path path) {
+      if (path.poses.size() >= 2)
+      {
+        auto ultimate_pose = path.poses.back();
+        auto penultimate_pose = path.poses[path.poses.size() - 2];
+        return (std::hypot(ultimate_pose.pose.position.x - penultimate_pose.pose.position.x,
+                           ultimate_pose.pose.position.y - penultimate_pose.pose.position.y)
+                < 2.0 / smoothed_points_per_unit_);
+      }
+      else
+      {
+        return true;
+      }
+    };
+
+    if (!check_path_consistency_lambda(original_path))
+    {
+      ROS_WARN("[hector_exploration_planner] raw path has inconsistent end point");
+    }
+
     nav_msgs::Path smoothed_path;
     {
       boost::mutex::scoped_lock lock(path_smoother_mutex_);
       path_smoother_->interpolatePath(original_path, smoothed_path);
     }
+
+
+    if (!check_path_consistency_lambda(smoothed_path))
+    {
+      ROS_WARN("[hector_exploration_planner] smoothed path has inconsistent end point, using raw path end point");
+      if (!smoothed_path.poses.empty() && !original_path.poses.empty())
+      {
+        smoothed_path.poses.back() = original_path.poses.back();
+      }
+    }
+
     plan = smoothed_path.poses;
   }
 
