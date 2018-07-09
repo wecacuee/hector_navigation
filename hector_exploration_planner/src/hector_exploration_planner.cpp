@@ -1820,16 +1820,19 @@ bool HectorExplorationPlanner::isFreeFrontiers(int point){
   if(isValid(point)){
     // if a point is not inscribed_inflated_obstacle, leathal_obstacle or no_information, its free
 
-
-    if(p_use_inflated_obs_){
-      if(occupancy_grid_array_[point] < costmap_2d::INSCRIBED_INFLATED_OBSTACLE){
+    if(occupancy_grid_array_[point] == costmap_2d::FREE_SPACE){
         return true;
-      }
-    } else {
-      if(occupancy_grid_array_[point] <= costmap_2d::INSCRIBED_INFLATED_OBSTACLE){
-        return true;
-      }
     }
+
+//    if(p_use_inflated_obs_){
+//      if(occupancy_grid_array_[point] < costmap_2d::INSCRIBED_INFLATED_OBSTACLE){
+//        return true;
+//      }
+//    } else {
+//      if(occupancy_grid_array_[point] <= costmap_2d::INSCRIBED_INFLATED_OBSTACLE){
+//        return true;
+//      }
+//    }
   }
   return false;
 }
