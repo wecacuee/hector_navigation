@@ -100,7 +100,8 @@ generate_dynamic_reconfigure_options(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES hector_exploration_base_global_planner_plugin ${PROJECT_NAME}
+#  LIBRARIES hector_exploration_base_global_planner_plugin ${PROJECT_NAME}
+  LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS costmap_2d dynamic_reconfigure geometry_msgs hector_nav_msgs nav_core nav_msgs pluginlib rosconsole roscpp rospy image_transport cv_bridge
 #  DEPENDS system_lib
 )
@@ -126,9 +127,9 @@ add_library(
   src/hector_exploration_planner.cpp
   src/custom_costmap_2d_ros.cpp
   src/frontier_vis.cpp
-  src/frontier_analysis.cpp
-)
-add_library(hector_exploration_base_global_planner_plugin src/hector_exploration_base_global_planner_plugin.cpp)
+  src/frontier_analysis.cpp)
+#        tests/frontiers_test.cpp)
+#add_library(hector_exploration_base_global_planner_plugin src/hector_exploration_base_global_planner_plugin.cpp)
 
 ## Declare a cpp executable
 # add_executable(hector_exploration_planner_node src/hector_exploration_planner_node.cpp)
@@ -137,7 +138,7 @@ add_library(hector_exploration_base_global_planner_plugin src/hector_exploration
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(hector_exploration_planner_node hector_exploration_planner_generate_messages_cpp)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg ${catkin_EXPORTED_TARGETS})
-add_dependencies(hector_exploration_base_global_planner_plugin ${PROJECT_NAME}_gencfg)
+#add_dependencies(hector_exploration_base_global_planner_plugin ${PROJECT_NAME}_gencfg)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(hector_exploration_planner_node
@@ -147,7 +148,15 @@ add_dependencies(hector_exploration_base_global_planner_plugin ${PROJECT_NAME}_g
 # target_link_libraries(
 #   ${PROJECT_NAME}
 # )
-target_link_libraries(hector_exploration_base_global_planner_plugin ${PROJECT_NAME})
+#target_link_libraries(hector_exploration_base_global_planner_plugin ${PROJECT_NAME})
+
+#add_executable(frontiers_test tests/frontiers_test.cpp)
+#add_dependencies(frontiers_test ${PROJECT_NAME})
+
+#target_link_libraries(frontiers_test
+#    ${PROJECT_NAME}
+#    ${catkin_LIBRARIES}
+#)
 
 #############
 ## Install ##

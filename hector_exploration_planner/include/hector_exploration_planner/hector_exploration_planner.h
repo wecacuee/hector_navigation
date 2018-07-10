@@ -50,10 +50,16 @@
 
 namespace hector_exploration_planner{
 
+// forward declarations of test classes
+class FrontiersTest;
+
 class ExplorationPlannerConfig;
 
 class HectorExplorationPlanner {
 public:
+  // allow for unit tests
+//  friend class FrontiersTest;
+
   HectorExplorationPlanner();
   ~HectorExplorationPlanner();
   HectorExplorationPlanner(std::string name, hector_exploration_planner::CustomCostmap2DROS *costmap_ros);
@@ -62,36 +68,11 @@ public:
   void dynRecParamCallback(hector_exploration_planner::ExplorationPlannerConfig &config, uint32_t level);
 
   /**
-   * Plans from start to given goal. If orientation quaternion of goal is all zeros, calls exploration instead. This is a hacky workaround that
-   * has to be refactored.
-   * @param start The start point
-   * @param goal The goal point (Use orientation quaternion all 0 to let exploration find goal point)
-   * @param plan The generated plan
-   */
-  bool makePlan(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &original_goal, std::vector<geometry_msgs::PoseStamped> &plan);
-
-  /**
     * Given a start point, finds a frontier between known and unknown space and generates a plan to go there
     * @param start The start point
     * @param plan The plan to explore into unknown space
     */
   bool doExploration(const geometry_msgs::PoseStamped &start,std::vector<geometry_msgs::PoseStamped> &plan);
-
-  /**
-    * This can be used if there are no frontiers to unknown space left in the map. The robot will retrieve it's path travelled so far via a service
-    * and try to go to places having a large distance to this path.
-    * @param start The start point
-    * @param plan The plan to explore into unknown space
-    */
-  bool doInnerExploration(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> &plan);
-
-  bool getObservationPose(const geometry_msgs::PoseStamped& observation_pose, const double desired_distance, geometry_msgs::PoseStamped& new_observation_pose);
-
-  bool doAlternativeExploration(const geometry_msgs::PoseStamped &start,std::vector<geometry_msgs::PoseStamped> &plan, std::vector<geometry_msgs::PoseStamped> &oldplan);
-  bool findFrontiers(std::vector<geometry_msgs::PoseStamped> &frontiers, std::vector<geometry_msgs::PoseStamped> &noFrontiers);
-  bool findFrontiersCloseToPath(std::vector<geometry_msgs::PoseStamped> &frontiers);
-  bool findFrontiers(std::vector<geometry_msgs::PoseStamped> &frontiers);
-  bool findInnerFrontier(std::vector<geometry_msgs::PoseStamped> &innerFrontier);
 
   void updateFrontiers();
   
@@ -113,12 +94,6 @@ public:
   }
 
 private:
-
-  enum LastMode{
-    FRONTIER_EXPLORE,
-    INNER_EXPLORE
-  } last_mode_;
-
   /**
    * Updates costmap data and resizes internal data structures if costmap size has changed. Should be called once before every planning command
    */
@@ -127,7 +102,6 @@ private:
   bool buildobstacle_trans_array_(bool use_inflated_obstacles);
   bool buildexploration_trans_array_(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> goals,bool useAnglePenalty, bool use_cell_danger = true);
   bool getTrajectory(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> goals, std::vector<geometry_msgs::PoseStamped> &plan);
-  bool recoveryMakePlan(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal,std::vector<geometry_msgs::PoseStamped> &plan);
   unsigned int cellDanger(int point);
   unsigned int angleDanger(float angle);
 
@@ -144,40 +118,26 @@ private:
   bool isFrontierReached(int point);
   bool isSameFrontier(int frontier_point1,int frontier_point2);
 
-  /**
-   * @brief clusters frontiers into blobs
-   * @param allFrontiers vector of all frontier cells (input argument)
-   * @param frontiers same as the frontiers param of findFrontiers method (output argument)
-   * @return whether the frontiers is empty
-   */
-  bool clusterFrontiers(std::vector<int> &allFrontiers,
-                        std::vector<geometry_msgs::PoseStamped> &frontiers);
-
-
-  /**
-   * @brief clusters frontiers into blobs
-   * @param allFrontiers vector of all frontier cells (input argument)
-   * @param frontiers same as the frontiers param of findFrontiers method (output argument)
-   * @param noFrontiers same as the frontiers param of findFrontiers method (output argument)
-   * @param frontierPoints frontiers in map (image) coordinates
-   * @return whether the frontiers is empty
-   */
-//  bool clusterFrontiers(std::vector<int> &allFrontiers,
-//                        std::vector<geometry_msgs::PoseStamped> &frontiers,
-//                        std::vector<geometry_msgs::PoseStamped> &noFrontiers);
-//
+  int getFrontierClusterCenter(const std::vector<int> &cluster);
+  std::vector<int> getFrontierClusterCenters(const std::vector<std::vector<int>> &clusters);
 
   /**
    * @brief cluster frontiers, but just using index to represent a frontier
-   * @param all_frontiers
-   * @param frontier_clusters
+   * @param all_frontiers input frontiers
+   * @param frontier_clusters output clusters
+   * @return fail or success
+   */
+  bool clusterFrontiers(const std::vector<int>& all_frontiers,
+                        std::vector<std::vector<int>>& frontier_clusters);
+
+  /**
+   * @brief cluster frontiers and remove small clusters
+   * @param all_frontiers input frontiers
+   * @param frontier_clusters output clusters
    * @return
    */
-  bool clusterFrontiers(std::vector<int>& all_frontiers, std::vector<std::vector<int>>& frontier_clusters);
-
-  bool clusterFrontiers(std::vector<int>& all_frontiers,
-                        std::vector<geometry_msgs::PoseStamped> &frontiers,
-                        std::vector<std::vector<geometry_msgs::PoseStamped>>& frontier_clusters);
+  bool clusterFrontiersRemoveSmall(const std::vector<int>& all_frontiers,
+                                   std::vector<std::vector<int>>& frontier_clusters);
 
   void getStraightPoints(int point, int points[]);
   void getDiagonalPoints(int point, int points[]);
@@ -196,14 +156,15 @@ private:
 
   // construct a PoseStamped structure from int index
   bool constructFrontier(int point, geometry_msgs::PoseStamped& frontier);
-  bool findAllFrontiers_index(std::vector<int>& allFrontiers);
-  bool findFrontiers_index(std::vector<int>& frontiers);
-//  bool clusterFrontiers_index(std::vector<int>& allFrontiers, std::vector<int>& frontiers);
-  bool centerOfFrontierCluster(std::vector<int>& frontier_clusters,
-                               geometry_msgs::PoseStamped& frontiers);
+  bool constructFrontiers(const std::vector<int> &points, std::vector<geometry_msgs::PoseStamped> &frontiers);
+  bool constructFrontiers(const std::vector<std::vector<int>> &points,
+                          std::vector<std::vector<geometry_msgs::PoseStamped>> &frontiers);
 
-  bool max_obs_point_of_cluster(std::vector<int>& frontier_cluster,
-                                                               geometry_msgs::PoseStamped& frontiers);
+  bool findAllFrontiers(std::vector<int>& allFrontiers);
+  bool findFrontiers(std::vector<int> &frontiers);
+
+  int centerPoint(const std::vector<int>& frontier_clusters);
+  int maxObstaclePoint(const std::vector<int>& frontier_cluster);
 
   void visualizeFrontiers(std::vector<geometry_msgs::PoseStamped> &frontiers);
 
@@ -216,7 +177,8 @@ private:
   hector_exploration_planner::CustomCostmap2DROS* costmap_ros_;
   costmap_2d::Costmap2D* costmap_;
 
-  const unsigned char* occupancy_grid_array_;
+//  const unsigned char* occupancy_grid_array_;
+  unsigned char* occupancy_grid_array_ = nullptr;
   boost::shared_array<unsigned int> exploration_trans_array_;
   boost::shared_array<unsigned int> obstacle_trans_array_;
   boost::shared_array<int> frontier_map_array_;
@@ -259,8 +221,8 @@ private:
   boost::mutex path_smoother_mutex_;
 
   // frontier parameters
-  int neighbor_distance = 5;
-  int cluster_min_number = 25;
+  int neighbor_distance = 4;
+  int cluster_min_number = 20;
 
   double p_cos_of_allowed_observation_pose_angle_;
   double p_close_to_path_target_distance_;
@@ -268,14 +230,11 @@ private:
   boost::shared_ptr<dynamic_reconfigure::Server<hector_exploration_planner::ExplorationPlannerConfig> > dyn_rec_server_;
 
   boost::shared_ptr<ExplorationTransformVis> vis_;
-  boost::shared_ptr<ExplorationTransformVis> close_path_vis_;
-  boost::shared_ptr<ExplorationTransformVis> inner_vis_;
   boost::shared_ptr<ExplorationTransformVis> obstacle_vis_;
 
   boost::shared_ptr<FrontierVis> frontier_vis_;
 
   std::vector<geometry_msgs::PoseStamped> frontiers_;
-
   std::vector<geometry_msgs::PoseStamped> clustered_frontiers_; ///< the center for each frontier cluster
   std::vector<std::vector<geometry_msgs::PoseStamped>> all_frontiers_clustered; ///< for all frontier points in clusters
 
