@@ -69,6 +69,9 @@
   <build_depend>path_smoothing_ros</build_depend>
   <run_depend>path_smoothing_ros</run_depend>
 
+  <build_depend>online_map_completion_msgs</build_depend>
+  <run_depend>online_map_completion_msgs</run_depend>
+
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- You can specify that this package is a metapackage here: -->

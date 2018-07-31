@@ -37,7 +37,8 @@
 #include <dynamic_reconfigure/server.h>
 
 #include <hector_exploration_planner/exploration_transform_vis.h>
-#include <hector_exploration_planner/frontier_vis.h>
+//#include <hector_exploration_planner/frontier_vis.h>
+#include <hector_exploration_planner/frontier_analysis.h>
 #include <path_smoothing_ros/cubic_spline_interpolator.h>
 
 
@@ -54,6 +55,7 @@ namespace hector_exploration_planner{
 class FrontiersTest;
 
 class ExplorationPlannerConfig;
+class InfoGainClient;
 
 class HectorExplorationPlanner {
 public:
@@ -232,7 +234,7 @@ private:
   boost::shared_ptr<ExplorationTransformVis> vis_;
   boost::shared_ptr<ExplorationTransformVis> obstacle_vis_;
 
-  boost::shared_ptr<FrontierVis> frontier_vis_;
+//  boost::shared_ptr<FrontierVis> frontier_vis_;
 
   std::vector<geometry_msgs::PoseStamped> frontiers_;
   std::vector<geometry_msgs::PoseStamped> clustered_frontiers_; ///< the center for each frontier cluster
@@ -243,6 +245,8 @@ private:
   cv::Mat frontiers_img_;
 
   boost::shared_ptr<boost::thread> frontiers_thread_;
+
+  boost::shared_ptr<hector_exploration_planner::InfoGainClient> info_gain_client_;
 
 };
 }

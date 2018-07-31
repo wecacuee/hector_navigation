@@ -27,6 +27,7 @@
 //=================================================================================================
 
 #include <hector_exploration_planner/hector_exploration_planner.h>
+#include <hector_exploration_planner/info_gain_client.h>
 
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -113,7 +114,9 @@ void HectorExplorationPlanner::initialize(std::string name, hector_exploration_p
 
   vis_.reset(new ExplorationTransformVis("exploration_transform"));
   obstacle_vis_.reset(new ExplorationTransformVis("obstacle_transform"));
-  frontier_vis_.reset(new FrontierVis("frontier_img"));
+//  frontier_vis_.reset(new FrontierVis("frontier_img"));
+
+  info_gain_client_ = boost::make_shared<InfoGainClient>(nh, this, costmap_ros_in);
 
   // frontiers_thread_.reset(
   //   new boost::thread([this]() {
@@ -217,6 +220,10 @@ bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &s
   if(frontiers_found) {
     ROS_INFO("[hector_exploration_planner] exploration: found %u frontiers!", (unsigned int) goals.size());
   }
+
+  auto info_gains = info_gain_client_->getInfoGain();
+  // TODO: use the info gain in exploration transform
+
   // make plan
   if(!buildexploration_trans_array_(start,goals,true)){
     return false;

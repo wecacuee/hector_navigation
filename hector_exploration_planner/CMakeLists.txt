@@ -19,6 +19,8 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   cv_bridge
   path_smoothing_ros
+
+  online_map_completion_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -126,8 +128,11 @@ add_library(
   ${PROJECT_NAME}
   src/hector_exploration_planner.cpp
   src/custom_costmap_2d_ros.cpp
-  src/frontier_vis.cpp
-  src/frontier_analysis.cpp)
+  src/frontier_analysis.cpp
+  #  src/frontier_vis.cpp
+
+  src/info_gain_client.cpp
+)
 #        tests/frontiers_test.cpp)
 #add_library(hector_exploration_base_global_planner_plugin src/hector_exploration_base_global_planner_plugin.cpp)
 
