@@ -222,6 +222,12 @@ bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &s
   }
 
   auto info_gains = info_gain_client_->getInfoGain();
+  ROS_INFO("Info gains");
+  for (const auto &i: info_gains)
+  {
+    std::cout << i << ", ";
+  }
+  std::cout << std::endl;
   // TODO: use the info gain in exploration transform
 
   // make plan
