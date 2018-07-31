@@ -98,6 +98,8 @@ std::vector<int> InfoGainClient::getInfoGain()
   {
     ROS_ERROR("Infomation gain service call failed");
   }
+
+  return infomation_gains;
 }
 
 frontier_analysis::Pose2D InfoGainClient::getRobotPose()
@@ -131,10 +133,13 @@ frontier_analysis::Pose2D InfoGainClient::getRobotPose()
 
 sensor_msgs::ImagePtr InfoGainClient::convert_to_ros_image(cv::Mat mat)
 {
-  cv_bridge::CvImagePtr cv_ptr;
-  cv_ptr->image = mat;
+  std_msgs::Header header;
+  header.stamp = ros::Time::now();
+  header.frame_id = 'base_link';
+  cv_bridge::CvImage cv_image(header, "bgr8", mat.clone());
+//  cv_ptr->image = mat.clone();
 
-  return cv_ptr->toImageMsg();
+  return cv_image.toImageMsg();
 }
 
 } // namespace hector_exploration_planner
