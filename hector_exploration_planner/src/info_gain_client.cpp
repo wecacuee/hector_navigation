@@ -133,7 +133,7 @@ sensor_msgs::ImagePtr InfoGainClient::convert_to_ros_image(cv::Mat mat)
 {
   std_msgs::Header header;
   header.stamp = ros::Time::now();
-  header.frame_id = 'base_link';
+  header.frame_id = "base_link";
   cv_bridge::CvImage cv_image(header, "bgr8", mat.clone());
 //  cv_ptr->image = mat.clone();
 
