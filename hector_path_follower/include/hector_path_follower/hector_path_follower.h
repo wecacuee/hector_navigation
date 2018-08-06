@@ -63,6 +63,8 @@ namespace pose_follower {
 
       typedef dynamic_reconfigure::Server<hector_path_follower::HectorPathFollowerConfig> dynamic_reconfigure_t;
 
+      int get_current_waypoint(){return this->current_waypoint_;};
+
 #if USE_CUSTOM_POSE
       /**
        * @brief set robot pose (odom)
