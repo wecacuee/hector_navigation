@@ -530,23 +530,26 @@ cv::Rect resizeToDesiredResolution(const cv::Rect &costmap_bounding_rect,
   return resized_bounding_rect;
 }
 
-Pose2D worldPose2MapPose(const geometry_msgs::PoseStamped &world_pose, double resolution, int size_x, int size_y)
+Pose2D worldPose2MapPose(const geometry_msgs::PoseStamped &world_pose,
+    const costmap_2d::Costmap2D &costmap)
 {
+
   double world_x = world_pose.pose.position.x;
   double world_y = world_pose.pose.position.y;
   double yaw = tf::getYaw(world_pose.pose.orientation);
 
-  int map_x = (int) (world_x / resolution) + size_x / 2;
-  int map_y = (int) (-world_y / resolution) + size_y / 2; //y is needed to be flipped
+  unsigned int map_x, map_y;
+  costmap.worldToMap(world_x, world_y, map_x, map_y);
 
-  return Pose2D{map_x, map_y, yaw};
+  map_y = costmap.getSizeInCellsY() - map_y - 1;  // flip y
+
+  return Pose2D{(int)map_x, (int)map_y, yaw};
 }
 
 std::vector<Pose2D> worldPosesToMapPoses(const std::vector<geometry_msgs::PoseStamped> &world_poses,
                                          const boost::shared_ptr<hector_exploration_planner::CustomCostmap2DROS> &costmap_2d_ros)
 {
   auto costmap = costmap_2d_ros->getCostmap();
-  auto resolution = costmap->getResolution();
   auto size_x = costmap->getSizeInCellsX();
   auto size_y = costmap->getSizeInCellsY();
 
@@ -555,7 +558,7 @@ std::vector<Pose2D> worldPosesToMapPoses(const std::vector<geometry_msgs::PoseSt
 
   for (const auto &world_pose: world_poses)
   {
-    Pose2D pose = worldPose2MapPose(world_pose, resolution, size_x, size_y);
+    Pose2D pose = worldPose2MapPose(world_pose, *costmap);
     if (pose.position.x >= 0 && pose.position.x < size_x && pose.position.y >= 0 && pose.position.y < size_y)
     {
       map_poses.push_back(pose);

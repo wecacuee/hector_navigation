@@ -282,12 +282,11 @@ cv::Rect resizeToDesiredResolution(const cv::Rect &costmap_bounding_rect,
  * @brief Convert a point in world coordinates (meters) to the point
  * in map coordinate (pixel), the orientation is not changed
  * @param world_pose point (with orientation) in world coordinates
- * @param resolution the resolution of the map
- * @param size_x width of the map
- * @param size_y height of the map
+ * @param costmap costmap
  * @return converted Point
  */
-Pose2D worldPose2MapPose(const geometry_msgs::PoseStamped &world_pose, double resolution, int size_x, int size_y);
+Pose2D worldPose2MapPose(const geometry_msgs::PoseStamped &world_pose,
+                         const costmap_2d::Costmap2D &costmap);
 
 /**
  * @brief Convert a cluster of points in world coordinates (meters)

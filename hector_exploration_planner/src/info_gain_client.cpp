@@ -125,9 +125,7 @@ frontier_analysis::Pose2D InfoGainClient::getRobotPose()
   auto costmap = costmap_2d_ros_->getCostmap();
   return frontier_analysis::worldPose2MapPose(
     pose,
-    costmap->getResolution(),
-    costmap->getSizeInCellsX(),
-    costmap->getSizeInCellsY()
+    *costmap
   );
 }
 
