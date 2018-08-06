@@ -37,10 +37,17 @@ struct Pose2D
     orientation = yaw;
   }
 
-  Pose2D(cv::Point position, double yaw)
+  Pose2D(const cv::Point& position, double yaw)
   {
     this->position = position;
     this->orientation = yaw;
+  }
+
+  Pose2D()
+  {
+    position.x = 0;
+    position.y = 0;
+    orientation = 0;
   }
 };
 
@@ -73,6 +80,13 @@ void getFrontierPoints(const boost::shared_ptr<hector_exploration_planner::Custo
                        std::vector<std::vector<Pose2D>> &all_clusters_cv);
 
 /**
+ * @brief get frontier cluter centers from costmap, the resolution is the same with original map
+ */
+void getFronierCenters(const boost::shared_ptr<hector_exploration_planner::CustomCostmap2DROS> &costmap_2d_ros,
+                       boost::shared_ptr<hector_exploration_planner::HectorExplorationPlanner> planner,
+                       std::vector<Pose2D> &frontier_clusters_centers);
+
+/**
  * @brief Resize a single Point by a ratio
  * @param inputPoint the point to be resized
  * @param ratio
@@ -81,7 +95,16 @@ void getFrontierPoints(const boost::shared_ptr<hector_exploration_planner::Custo
 Pose2D resizePoint(const Pose2D &inputPoint, double ratio);
 
 /**
- * @brief resize Frontier Points by a ratio
+ * @brief resize Frontier Points by a ratio, overload function
+ * @param inputPoints
+ * @param outputPoints
+ * @param ratio
+ */
+void resizePoints(const std::vector<Pose2D> &inputPoints,
+                    std::vector<Pose2D> &outputPoints, double ratio);
+
+/**
+ * @brief resize Frontier Points by a ratio, overload function
  * @param inputPoints
  * @param outputPoints
  * @param ratio
@@ -89,7 +112,18 @@ Pose2D resizePoint(const Pose2D &inputPoint, double ratio);
 void resizePoints(const std::vector<std::vector<Pose2D>> &inputPoints,
                   std::vector<std::vector<Pose2D>> &outputPoints, double ratio);
 
-Pose2D convertToGroundTruthSize(const Pose2D &point, cv::Size orgSize, cv::Size groundtruth_size);
+Pose2D convertToGroundTruthSize(const Pose2D &point, const cv::Size &orgSize, const cv::Size &groundtruth_size);
+
+/**
+ * @brief adapt Frontier Points in original map to the padded/clipped map whose size is equal to the ground truth map's
+ * @param inputPoints
+ * @param outputPoints
+ * @param orgSize
+ * @param groundtruth_size
+ */
+void convertToGroundTruthSize(const std::vector<Pose2D> &inputPoints,
+                              std::vector<Pose2D> &outputPoints,
+                              const cv::Size& orgSize,const cv::Size& groundtruth_size);
 
 /**
  * @brief adapt Frontier Points in original map to the padded/clipped map whose size is equal to the ground truth map's
@@ -100,7 +134,8 @@ Pose2D convertToGroundTruthSize(const Pose2D &point, cv::Size orgSize, cv::Size 
  */
 void convertToGroundTruthSize(const std::vector<std::vector<Pose2D>> &inputPoints,
                               std::vector<std::vector<Pose2D>> &outputPoints,
-                              cv::Size orgSize, cv::Size groundtruth_size);
+                              const cv::Size &orgSize,
+                              const cv::Size &groundtruth_size);
 
 /**
  * @brief generate Bounding Box for each frontier cluster
@@ -126,7 +161,8 @@ cv::Mat generateBoundingBoxImage(std::vector<cv::Rect> &inputRects, cv::Size siz
  * @return Verify Image
  */
 cv::Mat generateVerifyImage(const cv::Mat &costmap, const std::vector<cv::Rect> &boundingBoxes,
-                            const std::vector<std::vector<Pose2D>> &cluster_frontiers, const Pose2D &robotPose);
+                            const std::vector<std::vector<Pose2D>> &cluster_frontiers, const Pose2D &robotPose,
+                            const std::vector<Pose2D> &plan_poses);
 
 /**
  *

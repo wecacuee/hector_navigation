@@ -63,7 +63,7 @@ cv::Mat getRawMap(const boost::shared_ptr<hector_exploration_planner::CustomCost
 
 cv::Mat splitRawMap(const cv::Mat &rawMap)
 {
-  // split map into three channels: free, obstacle, unknown
+  // split map into three channels: unknown, free, obstacle,
   cv::Mat unknown, free, obstacle;
   thresholdCostmap(rawMap, unknown, free, obstacle);
 
@@ -89,7 +89,7 @@ void getFrontierPoints(const boost::shared_ptr<hector_exploration_planner::Custo
                        std::vector<std::vector<Pose2D>> &all_clusters_cv)
 {
   std::vector<std::vector<geometry_msgs::PoseStamped>> all_clusters = planner->getClusteredFrontierPoints();
-  for (auto single_cluster: all_clusters)
+  for (const auto &single_cluster: all_clusters)
   {
     std::vector<Pose2D> single_cluster_cv =
       frontier_analysis::worldPosesToMapPoses(single_cluster, costmap_2d_ros);
@@ -97,23 +97,37 @@ void getFrontierPoints(const boost::shared_ptr<hector_exploration_planner::Custo
   }
 }
 
+void getFronierCenters(const boost::shared_ptr<hector_exploration_planner::CustomCostmap2DROS> &costmap_2d_ros,
+                         boost::shared_ptr<hector_exploration_planner::HectorExplorationPlanner> planner,
+                         std::vector<Pose2D> &frontier_clusters_centers)
+{
+  std::vector<geometry_msgs::PoseStamped> centers = planner->getFrontierClusterCenters();
+  frontier_clusters_centers = frontier_analysis::worldPosesToMapPoses(centers, costmap_2d_ros);
+}
+
+
 Pose2D resizePoint(const Pose2D &inputPoint, double ratio)
 {
   Pose2D pose_resize(int(inputPoint.position.x * ratio), int(inputPoint.position.y * ratio), inputPoint.orientation);
   return pose_resize;
 }
 
+void resizePoints(const std::vector<Pose2D> &inputPoints, std::vector<Pose2D> &outputPoints, double ratio)
+{
+  for (const auto &pose: inputPoints)
+  {
+    Pose2D pose_resize = resizePoint(pose, ratio);
+    outputPoints.push_back(pose_resize);
+  }
+}
+
 void resizePoints(const std::vector<std::vector<Pose2D>> &inputPoints,
                   std::vector<std::vector<Pose2D>> &outputPoints, double ratio)
 {
-  for (auto single_cluster: inputPoints)
+  for (const auto &single_cluster: inputPoints)
   {
     std::vector<Pose2D> single_cluster_resize;
-    for (auto pose: single_cluster)
-    {
-      Pose2D pose_resize(int(pose.position.x * ratio), int(pose.position.y * ratio), pose.orientation);
-      single_cluster_resize.push_back(pose_resize);
-    }
+    resizePoints(single_cluster, single_cluster_resize, ratio);
     outputPoints.push_back(single_cluster_resize);
   }
 }
@@ -133,7 +147,7 @@ void resizeFrontierPoints(std::vector<std::vector<cv::Point>> &inputPoints,
   }
 }
 
-Pose2D convertToGroundTruthSize(const Pose2D &point, cv::Size orgSize, cv::Size groundtruth_size)
+Pose2D convertToGroundTruthSize(const Pose2D &point, const cv::Size &orgSize,const cv::Size &groundtruth_size)
 {
   auto diff_height_half = (int) std::floor((groundtruth_size.height - orgSize.height) / 2.0);
   auto diff_width_half = (int) std::floor((groundtruth_size.width - orgSize.width) / 2.0);
@@ -143,23 +157,25 @@ Pose2D convertToGroundTruthSize(const Pose2D &point, cv::Size orgSize, cv::Size 
                 point.orientation};
 }
 
+void convertToGroundTruthSize(const std::vector<Pose2D> &inputPoints,
+                              std::vector<Pose2D> &outputPoints,
+                              const cv::Size& orgSize,const cv::Size& groundtruth_size)
+{
+  for (const auto &single_point: inputPoints)
+  {
+    Pose2D point = convertToGroundTruthSize(single_point, orgSize, groundtruth_size);
+    outputPoints.push_back(point);
+  }
+}
+
 void convertToGroundTruthSize(const std::vector<std::vector<Pose2D>> &inputPoints,
                               std::vector<std::vector<Pose2D>> &outputPoints,
-                              cv::Size orgSize, cv::Size groundtruth_size)
+                              const cv::Size &orgSize, const cv::Size &groundtruth_size)
 {
-  auto diff_height_half = (int) std::floor((groundtruth_size.height - orgSize.height) / 2.0);
-  auto diff_width_half = (int) std::floor((groundtruth_size.width - orgSize.width) / 2.0);
-
-  for (auto single_cluster: inputPoints)
+  for (const auto &single_cluster: inputPoints)
   {
     std::vector<Pose2D> single_cluster_resize;
-    for (auto single_point: single_cluster)
-    {
-      Pose2D point(single_point.position.x + diff_width_half,
-                   single_point.position.y + diff_height_half,
-                   single_point.orientation);
-      single_cluster_resize.push_back(point);
-    }
+    convertToGroundTruthSize(single_cluster, single_cluster_resize, orgSize, groundtruth_size);
     outputPoints.push_back(single_cluster_resize);
   }
 }
@@ -229,10 +245,15 @@ cv::Mat generateBoundingBoxImage(std::vector<cv::Rect> &inputRects, cv::Size siz
 }
 
 cv::Mat generateVerifyImage(const cv::Mat &costmap, const std::vector<cv::Rect> &boundingBoxes,
-                            const std::vector<std::vector<Pose2D>> &cluster_frontiers, const Pose2D &robotPose)
+                            const std::vector<std::vector<Pose2D>> &cluster_frontiers, const Pose2D &robotPose,
+                            const std::vector<Pose2D> &plan_poses)
 {
   int height = costmap.size().height, width = costmap.size().width;
-  // generate frontiers map
+
+  cv::Mat channels[3];
+  cv::split(costmap, channels);
+
+  // generate frontiers map and its boundingbox
   cv::Mat frontier_points(height, width, CV_8UC1, cv::Scalar(0));
   for (std::vector<Pose2D> cluster: cluster_frontiers)
   {
@@ -242,22 +263,25 @@ cv::Mat generateVerifyImage(const cv::Mat &costmap, const std::vector<cv::Rect> 
     }
   }
 
-  // generate boundingBox map
-  cv::Mat boundingBoxImage(height, width, CV_8UC1, cv::Scalar(0));
   for (const auto &rect: boundingBoxes)
   {
-    cv::rectangle(boundingBoxImage, rect, cv::Scalar(255));
+    cv::rectangle(frontier_points, rect, cv::Scalar(255));
   }
 
-  cv::circle(boundingBoxImage, robotPose.position, 2, cv::Scalar(255, 255, 255), -1);
+  // use obstacles as channels and draw robot poses on this layer
+  cv::Mat channel3 = channels[2];
+  // draw plan poses
+  for(const auto &pose: plan_poses)
+  {
+    channel3.at<unsigned char>(pose.position) = 255;
+  }
 
-  cv::Mat channels[3];
-  cv::split(costmap, channels);
+  cv::circle(channel3, robotPose.position, 3, cv::Scalar(255), -1);
 
   std::vector<cv::Mat> new_channels(3);
   new_channels[0] = frontier_points;  // Frontier Points
   new_channels[1] = channels[1];      // Free Space
-  new_channels[2] = boundingBoxImage; // Bounding Box Image
+  new_channels[2] = channel3; // Bounding Box Image
 
   cv::Mat rgb_image;
   cv::merge(new_channels, rgb_image);
@@ -513,7 +537,7 @@ Pose2D worldPose2MapPose(const geometry_msgs::PoseStamped &world_pose, double re
   double yaw = tf::getYaw(world_pose.pose.orientation);
 
   int map_x = (int) (world_x / resolution) + size_x / 2;
-  int map_y = (int) (-world_y / resolution) + size_y / 2;
+  int map_y = (int) (-world_y / resolution) + size_y / 2; //y is needed to be flipped
 
   return Pose2D{map_x, map_y, yaw};
 }
