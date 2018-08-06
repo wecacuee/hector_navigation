@@ -77,9 +77,8 @@ public:
   bool doExploration(const geometry_msgs::PoseStamped &start,std::vector<geometry_msgs::PoseStamped> &plan);
 
   void updateFrontiers();
-  
+
   float angleDifferenceWall(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
-  bool exploreWalls(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> &goals);
 
   /**
    * @return image with frontier points (with size and resolution of costmap)
@@ -92,7 +91,13 @@ public:
   std::vector<std::vector<geometry_msgs::PoseStamped>> getClusteredFrontierPoints() 
   { 
     boost::mutex::scoped_lock lock(frontiers_mutex_);
-    return all_frontiers_clustered; 
+    return frontier_clusters_;
+  }
+
+  std::vector<geometry_msgs::PoseStamped> getFrontierClusterCenters()
+  {
+    boost::mutex::scoped_lock lock(frontiers_mutex_);
+    return frontier_cluster_centers_;
   }
 
 private:
@@ -102,17 +107,33 @@ private:
   void setupMapData();
   void deleteMapData();
   bool buildobstacle_trans_array_(bool use_inflated_obstacles);
-  bool buildexploration_trans_array_(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> goals,bool useAnglePenalty, bool use_cell_danger = true);
-  bool getTrajectory(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> goals, std::vector<geometry_msgs::PoseStamped> &plan);
+  bool buildexploration_trans_array_(const geometry_msgs::PoseStamped &start,
+                                     const std::vector<int>& info_gains,
+                                     const std::vector<std::vector<int>>& goals,
+                                     bool use_cell_danger = true);
+
+  unsigned int max_valid_value(boost::shared_array<unsigned int> & array, int size);
+  unsigned int min_value(boost::shared_array<unsigned int> & array, int size);
+
+  /**
+   * convert a exploration array into color map
+   * @param exploration_array
+   * @param max
+   * @return
+   */
+  cv::Mat trans_array_to_image(boost::shared_array<unsigned int> & exploration_array);
+
+  bool propagate_trans_cost(std::queue<int> init_queue, boost::shared_array<unsigned int>& array, bool use_cell_danger);
+
+  int getTransDelta(int src_pt, int dst_pt);
+  bool getTrajectory(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> &plan);
   unsigned int cellDanger(int point);
   unsigned int angleDanger(float angle);
 
-  void saveMaps(std::string path);
   void resetMaps();
   void clearFrontiers();
   bool isValid(int point);
   bool isFree(int point);
-  bool isFreeFrontiers(int point);
   bool isFrontier(int point);
   float angleDifference(const geometry_msgs::PoseStamped &start, const geometry_msgs::PoseStamped &goal);
   float getDistanceWeight(const geometry_msgs::PoseStamped &point1, const geometry_msgs::PoseStamped &point2);
@@ -183,13 +204,11 @@ private:
   unsigned char* occupancy_grid_array_ = nullptr;
   boost::shared_array<unsigned int> exploration_trans_array_;
   boost::shared_array<unsigned int> obstacle_trans_array_;
+  boost::shared_array<unsigned int> exploration_trans_array_info_gain_;
   boost::shared_array<int> frontier_map_array_;
   boost::shared_array<bool> is_goal_array_;
 
-  cv::Mat exploration_trans_img_;
-  static void drawExplorationTransform(const boost::shared_array<unsigned int> exploration_transform_array,
-                                       const costmap_2d::Costmap2D& costmap,
-                                       cv::Mat &img);
+  std::vector<int> current_info_gain_;
 
   bool initialized_;
   int previous_goal_;
@@ -213,6 +232,13 @@ private:
   bool p_use_observation_pose_calculation_;
   double p_observation_pose_desired_dist_;
 
+  int p_min_dist_frontier_to_obstacle_;
+  int p_frontier_neighbor_dist_;
+  int p_min_frontier_cluster_size_;
+
+  // use information gain or not
+  bool use_information_gain_;
+
   // path smoothing params
   bool smoothing_enabled_;
   int smoothed_points_per_unit_;
@@ -222,10 +248,6 @@ private:
   boost::shared_ptr<path_smoothing::CubicSplineInterpolator> path_smoother_;
   boost::mutex path_smoother_mutex_;
 
-  // frontier parameters
-  int neighbor_distance = 4;
-  int cluster_min_number = 20;
-
   double p_cos_of_allowed_observation_pose_angle_;
   double p_close_to_path_target_distance_;
 
@@ -233,12 +255,14 @@ private:
 
   boost::shared_ptr<ExplorationTransformVis> vis_;
   boost::shared_ptr<ExplorationTransformVis> obstacle_vis_;
+  boost::shared_ptr<ExplorationTransformVis> info_gain_vis_;
 
 //  boost::shared_ptr<FrontierVis> frontier_vis_;
 
   std::vector<geometry_msgs::PoseStamped> frontiers_;
-  std::vector<geometry_msgs::PoseStamped> clustered_frontiers_; ///< the center for each frontier cluster
-  std::vector<std::vector<geometry_msgs::PoseStamped>> all_frontiers_clustered; ///< for all frontier points in clusters
+  std::vector<geometry_msgs::PoseStamped> frontier_cluster_centers_; ///< the center for each frontier cluster
+  std::vector<std::vector<geometry_msgs::PoseStamped>> frontier_clusters_; ///< for all frontier points in clusters
+  std::vector<std::vector<int>> frontier_index_clusters_;
 
   boost::atomic_bool is_frontiers_found_;
   boost::mutex frontiers_mutex_;
