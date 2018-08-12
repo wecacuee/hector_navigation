@@ -155,6 +155,7 @@ void HectorExplorationPlanner::dynRecParamCallback(hector_exploration_planner::E
 
   p_frontier_neighbor_dist_ = config.frontier_neighbor_dist;
   p_min_frontier_cluster_size_ = config.min_frontier_cluster_size;
+  p_use_danger_ = config.use_danger;
   use_information_gain_ = config.use_info_gain;
 
   {
@@ -241,7 +242,7 @@ bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &s
   }
 
   // make plan
-  if(!buildexploration_trans_array_(start, info_gains, this->frontier_index_clusters_,true)){
+  if(!buildexploration_trans_array_(start, info_gains, this->frontier_index_clusters_, p_use_danger_)){
     return false;
   }
 

@@ -236,9 +236,13 @@ private:
   int p_min_dist_frontier_to_obstacle_;
   int p_frontier_neighbor_dist_;
   int p_min_frontier_cluster_size_;
+  // use obstacle punishment
+  bool p_use_danger_;
 
   // use information gain or not
   bool use_information_gain_;
+
+
 
   // path smoothing params
   bool smoothing_enabled_;
