@@ -52,6 +52,13 @@ struct Pose2D
 };
 
 /**
+ * Overload the function getRawMap, build a cvMat using Costmap2D
+ * @param costmap_2d
+ * @return
+ */
+cv::Mat getRawMap(const Costmap2D &costmap_2d);
+
+/**
  * @brief get cv::Mat Raw image from costmap_2d_ros
  * @param costmap_2d_ros
  * @return Raw image with just one channels, 0: free, 254: obstacle, 255: unknown
@@ -66,6 +73,13 @@ cv::Mat getRawMap(const boost::shared_ptr<hector_exploration_planner::CustomCost
 cv::Mat splitRawMap(const cv::Mat &rawMap);
 
 /**
+ * overload getMap, to get the image of costmap
+ * @param costmap_2d
+ * @return
+ */
+cv::Mat getMap(const Costmap2D &costmap_2d);
+
+/**
  * @brief get cv::Mat image from raw costmap_2d_ros
  * @param costmap_2d_ros
  * @return Image with three channels, corresponding to unknown, free and obstacle
@@ -75,15 +89,13 @@ cv::Mat getMap(const boost::shared_ptr<hector_exploration_planner::CustomCostmap
 /**
  * @brief getFrontierPoints from costmap, the resolution is the same with original map
  */
-void getFrontierPoints(const boost::shared_ptr<hector_exploration_planner::CustomCostmap2DROS> &costmap_2d_ros,
-                       boost::shared_ptr<hector_exploration_planner::HectorExplorationPlanner> planner,
+void getFrontierPoints(boost::shared_ptr<hector_exploration_planner::HectorExplorationPlanner> planner,
                        std::vector<std::vector<Pose2D>> &all_clusters_cv);
 
 /**
  * @brief get frontier cluter centers from costmap, the resolution is the same with original map
  */
-void getFronierCenters(const boost::shared_ptr<hector_exploration_planner::CustomCostmap2DROS> &costmap_2d_ros,
-                       boost::shared_ptr<hector_exploration_planner::HectorExplorationPlanner> planner,
+void getFronierCenters(boost::shared_ptr<hector_exploration_planner::HectorExplorationPlanner> planner,
                        std::vector<Pose2D> &frontier_clusters_centers);
 
 /**
@@ -292,11 +304,11 @@ Pose2D worldPose2MapPose(const geometry_msgs::PoseStamped &world_pose,
  * @brief Convert a cluster of points in world coordinates (meters)
  * to the points in map coordinate (pixel), the orientation is not changed
  * @param world_points
- * @param costmap_2d_ros
+ * @param costmap
  * @return converted Point
  */
 std::vector<Pose2D> worldPosesToMapPoses(const std::vector<geometry_msgs::PoseStamped> &world_points,
-                                         const boost::shared_ptr<hector_exploration_planner::CustomCostmap2DROS> &costmap_2d_ros);
+                                         const costmap_2d::Costmap2D &costmap);
 
 /**
  *

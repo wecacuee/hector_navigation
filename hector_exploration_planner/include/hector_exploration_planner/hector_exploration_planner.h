@@ -100,6 +100,8 @@ public:
     return frontier_cluster_centers_;
   }
 
+  costmap_2d::Costmap2D* getCostMap() { return costmap_;}
+
 private:
   /**
    * Updates costmap data and resizes internal data structures if costmap size has changed. Should be called once before every planning command
@@ -190,7 +192,6 @@ private:
   int maxObstaclePoint(const std::vector<int>& frontier_cluster);
 
   void visualizeFrontiers(std::vector<geometry_msgs::PoseStamped> &frontiers);
-
 
   ros::Publisher observation_pose_pub_;
   ros::Publisher goal_pose_pub_;

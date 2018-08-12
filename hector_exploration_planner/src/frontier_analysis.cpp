@@ -33,6 +33,17 @@ namespace hector_exploration_planner
 {
 namespace frontier_analysis
 {
+cv::Mat getRawMap(const Costmap2D &costmap_2d)
+{
+  cv::Mat map;
+  auto raw_costmap = costmap_2d.getCharMap();
+  cv::Mat raw_costmap_img(costmap_2d.getSizeInCellsY(), costmap_2d.getSizeInCellsX(), CV_8UC1,
+                          (void *) raw_costmap);
+
+  cv::flip(raw_costmap_img, map, 0);
+  return map;
+}
+
 cv::Mat getRawMap(const boost::shared_ptr<hector_exploration_planner::CustomCostmap2DROS> &costmap_2d_ros)
 {
   cv::Mat map;
@@ -78,31 +89,37 @@ cv::Mat splitRawMap(const cv::Mat &rawMap)
   return rgb_image;
 }
 
+cv::Mat getMap(const Costmap2D &costmap_2d)
+{
+  cv::Mat map = getRawMap(costmap_2d);
+  return splitRawMap(map);
+}
+
 cv::Mat getMap(const boost::shared_ptr<hector_exploration_planner::CustomCostmap2DROS> &costmap_2d_ros)
 {
   cv::Mat map = getRawMap(costmap_2d_ros);
   return splitRawMap(map);
 }
 
-void getFrontierPoints(const boost::shared_ptr<hector_exploration_planner::CustomCostmap2DROS> &costmap_2d_ros,
-                       boost::shared_ptr<hector_exploration_planner::HectorExplorationPlanner> planner,
+void getFrontierPoints(boost::shared_ptr<hector_exploration_planner::HectorExplorationPlanner> planner,
                        std::vector<std::vector<Pose2D>> &all_clusters_cv)
 {
+  costmap_2d::Costmap2D* costmap = planner->getCostMap();
   std::vector<std::vector<geometry_msgs::PoseStamped>> all_clusters = planner->getClusteredFrontierPoints();
   for (const auto &single_cluster: all_clusters)
   {
     std::vector<Pose2D> single_cluster_cv =
-      frontier_analysis::worldPosesToMapPoses(single_cluster, costmap_2d_ros);
+      frontier_analysis::worldPosesToMapPoses(single_cluster, *costmap);
     all_clusters_cv.push_back(single_cluster_cv);
   }
 }
 
-void getFronierCenters(const boost::shared_ptr<hector_exploration_planner::CustomCostmap2DROS> &costmap_2d_ros,
-                         boost::shared_ptr<hector_exploration_planner::HectorExplorationPlanner> planner,
-                         std::vector<Pose2D> &frontier_clusters_centers)
+void getFronierCenters(boost::shared_ptr<hector_exploration_planner::HectorExplorationPlanner> planner,
+                       std::vector<Pose2D> &frontier_clusters_centers)
 {
+  costmap_2d::Costmap2D* costmap = planner->getCostMap();
   std::vector<geometry_msgs::PoseStamped> centers = planner->getFrontierClusterCenters();
-  frontier_clusters_centers = frontier_analysis::worldPosesToMapPoses(centers, costmap_2d_ros);
+  frontier_clusters_centers = frontier_analysis::worldPosesToMapPoses(centers, *costmap);
 }
 
 
@@ -547,18 +564,17 @@ Pose2D worldPose2MapPose(const geometry_msgs::PoseStamped &world_pose,
 }
 
 std::vector<Pose2D> worldPosesToMapPoses(const std::vector<geometry_msgs::PoseStamped> &world_poses,
-                                         const boost::shared_ptr<hector_exploration_planner::CustomCostmap2DROS> &costmap_2d_ros)
+                                         const Costmap2D &costmap)
 {
-  auto costmap = costmap_2d_ros->getCostmap();
-  auto size_x = costmap->getSizeInCellsX();
-  auto size_y = costmap->getSizeInCellsY();
+  auto size_x = costmap.getSizeInCellsX();
+  auto size_y = costmap.getSizeInCellsY();
 
   std::vector<Pose2D> map_poses;
   map_poses.reserve(world_poses.size());
 
   for (const auto &world_pose: world_poses)
   {
-    Pose2D pose = worldPose2MapPose(world_pose, *costmap);
+    Pose2D pose = worldPose2MapPose(world_pose, costmap);
     if (pose.position.x >= 0 && pose.position.x < size_x && pose.position.y >= 0 && pose.position.y < size_y)
     {
       map_poses.push_back(pose);
@@ -914,7 +930,7 @@ void get_frontier_info(const boost::shared_ptr<hector_exploration_planner::Hecto
 
   // get frontiers points with the same resolution of costmap
   std::vector<std::vector<Pose2D>> all_clusters_frontiers;
-  frontier_analysis::getFrontierPoints(costmap_2d_ros, planner, all_clusters_frontiers);
+  frontier_analysis::getFrontierPoints(planner, all_clusters_frontiers);
 
 
   //--- resize costmap and clusted_frontier_points to the same resolution of ground_truth map---

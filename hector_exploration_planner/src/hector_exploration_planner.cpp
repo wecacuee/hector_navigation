@@ -336,6 +336,8 @@ void HectorExplorationPlanner::setupMapData()
   occupancy_grid_array_ = new unsigned char[num_map_cells_];
   std::memcpy(occupancy_grid_array_, costmap_->getCharMap(), num_map_cells_);
 
+  lock.unlock();
+
 //  occupancy_grid_array_ = costmap_->getCharMap();
 }
 
@@ -369,7 +371,6 @@ bool HectorExplorationPlanner::propagate_trans_cost(std::queue<int> init_queue,
     // calculate the minimum exploration value of all adjacent cells
     for (int i = 0; i < 4; ++i) {
       if (isFree(straightPoints[i])) {
-
         unsigned int cell_danger = 0;
         if(use_cell_danger)
           cell_danger = cellDanger(straightPoints[i]);
@@ -383,17 +384,17 @@ bool HectorExplorationPlanner::propagate_trans_cost(std::queue<int> init_queue,
 
       // In extreme situation, there are two obstcles in diagnoal
       // and two free points in another diagonal, this will result in a problem
-//      if (isFree(diagonalPoints[i])) {
-//        unsigned int cell_danger = 0;
-//        if(use_cell_danger)
-//          cell_danger = cellDanger(diagonalPoints[i]);
-//        unsigned int neighbor_cost = minimum + DIAGONAL_COST + cell_danger;
-//
-//        if (trans_array[diagonalPoints[i]] > neighbor_cost) {
-//          trans_array[diagonalPoints[i]] = neighbor_cost;
-//          init_queue.push(diagonalPoints[i]);
-//        }
-//      }
+      if (isFree(diagonalPoints[i])) {
+        unsigned int cell_danger = 0;
+        if(use_cell_danger)
+          cell_danger = cellDanger(diagonalPoints[i]);
+        unsigned int neighbor_cost = minimum + DIAGONAL_COST + cell_danger;
+
+        if (trans_array[diagonalPoints[i]] > neighbor_cost) {
+          trans_array[diagonalPoints[i]] = neighbor_cost;
+          init_queue.push(diagonalPoints[i]);
+        }
+      }
     }
   }
 }
@@ -1173,7 +1174,7 @@ inline unsigned int HectorExplorationPlanner::cellDanger(int point){
   //std::cout << obstacle_trans_array_[point] << "\n";
 
   if ((int)obstacle_trans_array_[point] <= p_min_obstacle_dist_){
-    return (p_min_obstacle_dist_ - obstacle_trans_array_[point])*5;
+    return (unsigned int) std::pow((p_min_obstacle_dist_ - obstacle_trans_array_[point]), 1.1)*5;
   }
 
   return 0;
