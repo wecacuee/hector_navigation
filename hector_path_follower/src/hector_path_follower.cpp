@@ -366,6 +366,7 @@ namespace pose_follower {
       std::vector<geometry_msgs::PoseStamped>& transformed_plan){
 #if USE_CUSTOM_POSE
     transformed_plan = global_plan;
+    return true;
 #else
     const geometry_msgs::PoseStamped& plan_pose = global_plan[0];
 
