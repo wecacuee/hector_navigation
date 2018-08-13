@@ -322,6 +322,7 @@ void HectorExplorationPlanner::setupMapData()
     unsigned int *exploration_trans_array_info_gain = new unsigned int[num_map_cells_];
     bool *is_goal_array = new bool[num_map_cells_];
     int *frontier_map_array = new int[num_map_cells_];
+    unsigned char *occupancy_grid_array = new unsigned char[num_map_cells_];
 
     std::fill_n(exploration_trans_array, num_map_cells_, 0);
     std::fill_n(obstacle_trans_array, num_map_cells_, 0);
@@ -335,17 +336,14 @@ void HectorExplorationPlanner::setupMapData()
     is_goal_array_.reset(is_goal_array);
     frontier_map_array_.reset(frontier_map_array);
     frontiers_img_ = cv::Mat(map_height_, map_width_, CV_8UC1, cv::Scalar(0));
+    occupancy_grid_array_.reset(occupancy_grid_array);
     clearFrontiers();
     resetMaps();
   }
 
   boost::unique_lock<costmap_2d::Costmap2D::mutex_t> lock(*(costmap_->getMutex()));
 
-  if(occupancy_grid_array_)
-    delete []occupancy_grid_array_;
-
-  occupancy_grid_array_ = new unsigned char[num_map_cells_];
-  std::memcpy(occupancy_grid_array_, costmap_->getCharMap(), num_map_cells_);
+  std::memcpy(occupancy_grid_array_.get(), costmap_->getCharMap(), num_map_cells_);
 
   lock.unlock();
 
@@ -354,9 +352,7 @@ void HectorExplorationPlanner::setupMapData()
 
 void HectorExplorationPlanner::deleteMapData()
 {
-  if(occupancy_grid_array_)
-    delete []occupancy_grid_array_;
-
+  occupancy_grid_array_.reset();
   exploration_trans_array_.reset();
   obstacle_trans_array_.reset();
   is_goal_array_.reset();
@@ -464,7 +460,7 @@ cv::Mat HectorExplorationPlanner::trans_array_to_image(
 
   // get costmap and split unknown, free, obstacle
   cv::Mat raw_map(costmap_->getSizeInCellsY(), costmap_->getSizeInCellsX(), CV_8UC1,
-                  (void *) this->occupancy_grid_array_);
+                  (void *) this->occupancy_grid_array_.get());
   cv::Mat raw_map_rgb = frontier_analysis::splitRawMap(raw_map);
 
   // get unknown, free, obstacle channels as mask

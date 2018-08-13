@@ -206,12 +206,14 @@ private:
   costmap_2d::Costmap2D* costmap_;
 
 //  const unsigned char* occupancy_grid_array_;
-  unsigned char* occupancy_grid_array_ = nullptr;
+  boost::shared_array<unsigned char> occupancy_grid_array_;
   boost::shared_array<unsigned int> exploration_trans_array_;
   boost::shared_array<unsigned int> obstacle_trans_array_;
   boost::shared_array<unsigned int> exploration_trans_array_info_gain_;
   boost::shared_array<int> frontier_map_array_;
   boost::shared_array<bool> is_goal_array_;
+
+  cv::Mat ground_truth_;  // ground truth image
 
   std::vector<int> current_info_gain_;
 
@@ -245,7 +247,6 @@ private:
 
   // use information gain or not
   bool use_information_gain_;
-
 
 
   // path smoothing params
