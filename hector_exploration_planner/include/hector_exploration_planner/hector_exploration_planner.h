@@ -73,8 +73,12 @@ public:
     * Given a start point, finds a frontier between known and unknown space and generates a plan to go there
     * @param start The start point
     * @param plan The plan to explore into unknown space
+    * @param the_other_plan the other plan, if plan uses information gain, the other plan do not use information gain,
+    * otherwise the other plan is the same with current plan
     */
-  bool doExploration(const geometry_msgs::PoseStamped &start,std::vector<geometry_msgs::PoseStamped> &plan);
+  bool doExploration(const geometry_msgs::PoseStamped &start,
+      std::vector<geometry_msgs::PoseStamped> &plan,
+      std::vector<geometry_msgs::PoseStamped> &the_other_plan);
 
   void updateFrontiers();
 
@@ -127,8 +131,8 @@ private:
 
   bool propagate_trans_cost(std::queue<int> init_queue, boost::shared_array<unsigned int>& array, bool use_cell_danger);
 
-  int getTransDelta(int src_pt, int dst_pt);
-  bool getTrajectory(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> &plan);
+  int getTransDelta(int src_pt, int dst_pt, bool use_info_gain);
+  bool getTrajectory(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> &plan, bool use_info_gain);
   unsigned int cellDanger(int point);
   unsigned int angleDanger(float angle);
 

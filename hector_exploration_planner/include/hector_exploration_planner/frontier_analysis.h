@@ -170,11 +170,18 @@ cv::Mat generateBoundingBoxImage(std::vector<cv::Rect> &inputRects, cv::Size siz
  * @param costmap
  * @param boundingBoxes Bounding Boxes for each Frontiers
  * @param cluster_frontiers Frontiers Points
+ * @param plan trajectory plan
+ * @param another_plan another trajectory plan
+ * @param robotPose robot pose after execute plan
+ * @param robot_poses robot poses in executing plan
  * @return Verify Image
  */
 cv::Mat generateVerifyImage(const cv::Mat &costmap, const std::vector<cv::Rect> &boundingBoxes,
-                            const std::vector<std::vector<Pose2D>> &cluster_frontiers, const Pose2D &robotPose,
-                            const std::vector<Pose2D> &plan_poses);
+                            const std::vector<std::vector<Pose2D>> &cluster_frontiers,
+                            const std::vector<Pose2D> &plan,
+                            const std::vector<Pose2D> &another_plan,
+                            const Pose2D &robotPose,
+                            const std::vector<Pose2D> &robot_poses);
 
 /**
  *

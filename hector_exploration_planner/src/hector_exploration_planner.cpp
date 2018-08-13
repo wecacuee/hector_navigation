@@ -39,7 +39,7 @@
 
 #define STRAIGHT_COST 100
 #define DIAGONAL_COST 141
-#define INFO_GAIN_WEIGHT 200
+#define INFO_GAIN_WEIGHT 300
 
 //#define STRAIGHT_COST 3
 //#define DIAGONAL_COST 4
@@ -213,7 +213,9 @@ void HectorExplorationPlanner::updateFrontiers()
   }
 }
 
-bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> &plan)
+bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &start,
+    std::vector<geometry_msgs::PoseStamped> &plan,
+    std::vector<geometry_msgs::PoseStamped> &the_other_plan)
 {
   std::vector<geometry_msgs::PoseStamped> goals;
 
@@ -246,9 +248,17 @@ bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &s
     return false;
   }
 
-  if(!getTrajectory(start,plan)) {
+  if(!getTrajectory(start,plan, this->use_information_gain_)) {
     ROS_WARN("[hector_exploration_planner] exploration: could not plan to frontier, fail");
     return false;
+  }
+
+  // get the other plan
+  if(this->use_information_gain_) {
+    getTrajectory(start,the_other_plan, false);
+  }
+  else {
+    the_other_plan = plan;
   }
 
   // update previous goal
@@ -596,12 +606,12 @@ bool HectorExplorationPlanner::buildobstacle_trans_array_(bool use_inflated_obst
   return true;
 }
 
-int HectorExplorationPlanner::getTransDelta(int src_pt, int dst_pt)
+int HectorExplorationPlanner::getTransDelta(int src_pt, int dst_pt, bool use_info_gain)
 {
   int delta = 0;
   if(isFree(src_pt) && isFree(dst_pt))
   {
-    if(use_information_gain_)
+    if(use_info_gain)
       delta = exploration_trans_array_info_gain_[src_pt] - exploration_trans_array_info_gain_[dst_pt];
     else
       delta = exploration_trans_array_[src_pt] - exploration_trans_array_[dst_pt];
@@ -609,7 +619,9 @@ int HectorExplorationPlanner::getTransDelta(int src_pt, int dst_pt)
   return delta;
 }
 
-bool HectorExplorationPlanner::getTrajectory(const geometry_msgs::PoseStamped &start, std::vector<geometry_msgs::PoseStamped> &plan){
+bool HectorExplorationPlanner::getTrajectory(const geometry_msgs::PoseStamped &start,
+    std::vector<geometry_msgs::PoseStamped> &plan,
+    bool use_info_gain){
 
   ROS_DEBUG("[hector_exploration_planner] getTrajectory");
 
@@ -651,7 +663,7 @@ bool HectorExplorationPlanner::getTrajectory(const geometry_msgs::PoseStamped &s
     // for straight points
     for(int i = 0; i < 4; ++i) {
       if(isFree(straightPoints[i])){
-        thisDelta = getTransDelta(currentPoint, straightPoints[i]);
+        thisDelta = getTransDelta(currentPoint, straightPoints[i], use_info_gain);
         if(thisDelta > maxDelta){
           maxDelta = thisDelta;
           nextPoint = straightPoints[i];
@@ -669,7 +681,7 @@ bool HectorExplorationPlanner::getTrajectory(const geometry_msgs::PoseStamped &s
       unsigned int adj2 = costmap_->getIndex(fx, cy);
 
       if(isFree(diagonalPoints[i]) && (isFree(adj1) || isFree(adj2))){
-        thisDelta = getTransDelta(currentPoint, diagonalPoints[i]);
+        thisDelta = getTransDelta(currentPoint, diagonalPoints[i], use_info_gain);
         if(thisDelta > maxDelta){
           maxDelta = thisDelta;
           nextPoint = diagonalPoints[i];

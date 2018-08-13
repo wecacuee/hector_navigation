@@ -262,8 +262,11 @@ cv::Mat generateBoundingBoxImage(std::vector<cv::Rect> &inputRects, cv::Size siz
 }
 
 cv::Mat generateVerifyImage(const cv::Mat &costmap, const std::vector<cv::Rect> &boundingBoxes,
-                            const std::vector<std::vector<Pose2D>> &cluster_frontiers, const Pose2D &robotPose,
-                            const std::vector<Pose2D> &plan_poses)
+                            const std::vector<std::vector<Pose2D>> &cluster_frontiers,
+                            const std::vector<Pose2D> &plan,
+                            const std::vector<Pose2D> &another_plan,
+                            const Pose2D &robotPose,
+                            const std::vector<Pose2D> &robot_poses)
 {
   int height = costmap.size().height, width = costmap.size().width;
 
@@ -271,37 +274,60 @@ cv::Mat generateVerifyImage(const cv::Mat &costmap, const std::vector<cv::Rect> 
   cv::split(costmap, channels);
 
   // generate frontiers map and its boundingbox
-  cv::Mat frontier_points(height, width, CV_8UC1, cv::Scalar(0));
+  cv::Mat blue_channel(height, width, CV_8UC1, cv::Scalar(0));
   for (std::vector<Pose2D> cluster: cluster_frontiers)
   {
     for (Pose2D frontier: cluster)
     {
-      frontier_points.at<unsigned char>(frontier.position) = 255;
+      blue_channel.at<unsigned char>(frontier.position) = 255;
     }
   }
 
   for (const auto &rect: boundingBoxes)
   {
-    cv::rectangle(frontier_points, rect, cv::Scalar(255));
+    cv::rectangle(blue_channel, rect, cv::Scalar(255));
   }
 
   // use obstacles as channels and draw robot poses on this layer
   cv::Mat channel3 = channels[2];
-  // draw plan poses
-  for(const auto &pose: plan_poses)
-  {
-    channel3.at<unsigned char>(pose.position) = 255;
-  }
 
-  cv::circle(channel3, robotPose.position, 3, cv::Scalar(255), -1);
 
   std::vector<cv::Mat> new_channels(3);
-  new_channels[0] = frontier_points;  // Frontier Points
-  new_channels[1] = channels[1];      // Free Space
+  new_channels[0] = blue_channel;  // Frontier Points
+  new_channels[1] = channels[1];   // Free Space
   new_channels[2] = channel3; // Bounding Box Image
 
   cv::Mat rgb_image;
   cv::merge(new_channels, rgb_image);
+
+  cv::Scalar red(0, 0, 255), blue(255, 0, 0), pink(203,192,255), yellow(0, 255, 255);
+
+  // draw another plan
+  if(another_plan.size() > 1)
+  {
+    for(int i = 0; i < another_plan.size() - 1; i++)
+    {
+      cv::line(rgb_image, another_plan[i].position, another_plan[i+1].position, blue); // use blue for another plan
+    }
+  }
+
+  // draw plan
+  if(plan.size() > 1)
+  {
+    for(int i = 0; i < int(plan.size()) - 1; i++)
+    {
+      cv::line(rgb_image, plan[i].position, plan[i+1].position, red); // use red for current plan
+    }
+  }
+
+  // draw robot poses
+  for(const auto &pose: robot_poses)
+  {
+    rgb_image.at<cv::Vec3b>(pose.position) = cv::Vec3b(0, 255, 255); //use yellow for current robot poses
+  }
+
+  // draw final robot Pose
+  cv::circle(rgb_image, robotPose.position, 3, yellow, -1); //use yellow circle for current robot pose
 
   return rgb_image;
 }
