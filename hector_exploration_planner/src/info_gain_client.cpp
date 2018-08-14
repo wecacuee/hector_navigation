@@ -35,29 +35,32 @@ InfoGainClient::InfoGainClient(ros::NodeHandle &nh,
   );
 }
 
-std::vector<int> InfoGainClient::getInfoGain()
+std::vector<int> InfoGainClient::getInfoGain(bool use_gt)
 {
   cv::Mat costmap;
   std::vector<cv::Rect> bounding_boxes;
   std::vector<std::vector<frontier_analysis::Pose2D>> frontier_clusters;
 
   auto robot_pose = getRobotPose();
+  auto ground_truth_image = 255 - planner_->getGroundTruth();
 
   frontier_analysis::get_frontier_info(
     planner_,
     costmap_2d_ros_,
     robot_pose,
     MAP_RESOLUTION,
-    MAP_SIZE,
+    ground_truth_image.size(),
     costmap,
     bounding_boxes,
     frontier_clusters
   );
 
   auto ros_costmap_image = convert_to_ros_image(costmap);
+  auto ros_ground_truth_image = convert_to_ros_image(ground_truth_image);
 
   online_map_completion_msgs::InfoGains srv;
   srv.request.multi_channel_occupancy_grid = *ros_costmap_image;
+  srv.request.ground_truth = *ros_ground_truth_image;
   // TODO: fill
 
   for (const auto &cluster: frontier_clusters)
@@ -85,13 +88,19 @@ std::vector<int> InfoGainClient::getInfoGain()
     srv.request.frontier_rois.push_back(roi);
   }
 
-  std::vector<int> infomation_gains;
+  std::vector<int> information_gains;
+  std::vector<int> information_gains_gt;
 
   if (service_client_.call(srv))
   {
     for (const auto &i: srv.response.info_gains)
     {
-      infomation_gains.push_back(i.data);
+      information_gains.push_back(i.data);
+    }
+
+    for(const auto &i: srv.response.info_gains_gt)
+    {
+      information_gains_gt.push_back(i.data);
     }
   }
   else
@@ -99,7 +108,10 @@ std::vector<int> InfoGainClient::getInfoGain()
     ROS_ERROR("Infomation gain service call failed");
   }
 
-  return infomation_gains;
+  if(use_gt)
+    return information_gains_gt;
+  else
+    return information_gains;
 }
 
 frontier_analysis::Pose2D InfoGainClient::getRobotPose()

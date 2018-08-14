@@ -64,8 +64,11 @@ public:
 
   HectorExplorationPlanner();
   ~HectorExplorationPlanner();
-  HectorExplorationPlanner(std::string name, hector_exploration_planner::CustomCostmap2DROS *costmap_ros);
-  void initialize(std::string name,hector_exploration_planner::CustomCostmap2DROS *costmap_ros);
+  HectorExplorationPlanner(std::string name, hector_exploration_planner::CustomCostmap2DROS *costmap_ros,
+      cv::Mat ground_truth);
+  void initialize(std::string name,
+      hector_exploration_planner::CustomCostmap2DROS *costmap_ros,
+      const cv::Mat& ground_truth);
 
   void dynRecParamCallback(hector_exploration_planner::ExplorationPlannerConfig &config, uint32_t level);
 
@@ -105,6 +108,8 @@ public:
   }
 
   costmap_2d::Costmap2D* getCostMap() { return costmap_;}
+
+  cv::Mat getGroundTruth() {return ground_truth_;}
 
 private:
   /**
@@ -197,6 +202,9 @@ private:
 
   void visualizeFrontiers(std::vector<geometry_msgs::PoseStamped> &frontiers);
 
+  // whether there is obstacles in the plan
+  bool ObstacleInPlan(const std::vector<geometry_msgs::PoseStamped> &plan);
+
   ros::Publisher observation_pose_pub_;
   ros::Publisher goal_pose_pub_;
 
@@ -247,6 +255,7 @@ private:
 
   // use information gain or not
   bool use_information_gain_;
+  bool use_information_gain_gt_; // use ground truth information gain or not
 
 
   // path smoothing params

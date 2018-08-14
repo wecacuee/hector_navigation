@@ -321,10 +321,10 @@ cv::Mat generateVerifyImage(const cv::Mat &costmap, const std::vector<cv::Rect> 
   }
 
   // draw robot poses
-  for(const auto &pose: robot_poses)
-  {
-    rgb_image.at<cv::Vec3b>(pose.position) = cv::Vec3b(0, 255, 255); //use yellow for current robot poses
-  }
+//  for(const auto &pose: robot_poses)
+//  {
+//    rgb_image.at<cv::Vec3b>(pose.position) = cv::Vec3b(0, 255, 255); //use yellow for current robot poses
+//  }
 
   // draw final robot Pose
   cv::circle(rgb_image, robotPose.position, 3, yellow, -1); //use yellow circle for current robot pose

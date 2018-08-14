@@ -74,12 +74,16 @@ HectorExplorationPlanner::~HectorExplorationPlanner(){
   this->deleteMapData();
 }
 
-HectorExplorationPlanner::HectorExplorationPlanner(std::string name, hector_exploration_planner::CustomCostmap2DROS *costmap_ros_in) :
+HectorExplorationPlanner::HectorExplorationPlanner(std::string name,
+    hector_exploration_planner::CustomCostmap2DROS *costmap_ros_in,
+    cv::Mat ground_truth) :
 costmap_ros_(NULL), initialized_(false), is_frontiers_found_(false) {
-  HectorExplorationPlanner::initialize(name, costmap_ros_in);
+  HectorExplorationPlanner::initialize(name, costmap_ros_in, ground_truth);
 }
 
-void HectorExplorationPlanner::initialize(std::string name, hector_exploration_planner::CustomCostmap2DROS *costmap_ros_in){
+void HectorExplorationPlanner::initialize(std::string name,
+    hector_exploration_planner::CustomCostmap2DROS *costmap_ros_in,
+    const cv::Mat& ground_truth){
   // unknown: 255, obstacle 254, inflated: 253, free: 0
 
   if(initialized_){
@@ -88,6 +92,8 @@ void HectorExplorationPlanner::initialize(std::string name, hector_exploration_p
   }
 
   ROS_INFO("[hector_exploration_planner] Initializing HectorExplorationPlanner");
+
+  this->ground_truth_ = ground_truth;
 
   // initialize costmaps
   this->costmap_ros_ = costmap_ros_in;
@@ -157,6 +163,7 @@ void HectorExplorationPlanner::dynRecParamCallback(hector_exploration_planner::E
   p_min_frontier_cluster_size_ = config.min_frontier_cluster_size;
   p_use_danger_ = config.use_danger;
   use_information_gain_ = config.use_info_gain;
+  use_information_gain_gt_ = config.use_info_gain_gt;
 
   {
     boost::mutex::scoped_lock lock(path_smoother_mutex_);
@@ -178,10 +185,6 @@ void HectorExplorationPlanner::updateFrontiers()
 {
   boost::mutex::scoped_lock lock(frontiers_mutex_);
 
-  is_frontiers_found_ = false;
-
-  std::vector<int> frontiers;
-
   this->setupMapData();
 
   // setup maps and goals
@@ -191,12 +194,16 @@ void HectorExplorationPlanner::updateFrontiers()
   // create obstacle transform
   buildobstacle_trans_array_(p_use_inflated_obs_);
 
-  is_frontiers_found_ = findFrontiers(frontiers);
+  is_frontiers_found_ = false;
+
+  std::vector<int> frontiers;
+  findFrontiers(frontiers);
 
   std::vector<std::vector<int>> frontier_clusters;
   clusterFrontiersRemoveSmall(frontiers, frontier_clusters);
   std::vector<int> frontier_cluster_centers = getFrontierClusterCenters(frontier_clusters);
   this->frontier_index_clusters_ = frontier_clusters;
+  is_frontiers_found_ = !this->frontier_cluster_centers_.empty();
 
   frontiers_.clear();
   frontier_cluster_centers_.clear();
@@ -228,15 +235,20 @@ bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &s
   }
 
   plan.clear();
+  the_other_plan.clear();
+
   bool frontiers_found = is_frontiers_found_;
 
   if(frontiers_found) {
     ROS_INFO("[hector_exploration_planner] exploration: found %u frontiers!", (unsigned int) goals.size());
+  } else {
+    ROS_WARN("[hector_exploration_planner] exploration: No valid frontiers found!");
+    return false;
   }
 
   std::vector<int> info_gains;
   if(use_information_gain_)
-    info_gains = info_gain_client_->getInfoGain();
+    info_gains = info_gain_client_->getInfoGain(true);
   else
   {
     for(int i = 0; i < frontier_index_clusters_.size(); i++)
@@ -615,6 +627,25 @@ int HectorExplorationPlanner::getTransDelta(int src_pt, int dst_pt, bool use_inf
   return delta;
 }
 
+bool HectorExplorationPlanner::ObstacleInPlan(const std::vector<geometry_msgs::PoseStamped> &plan)
+{
+  // check if current_plan_ is inside obstacle or not
+  if(plan.empty())
+    return false;
+
+  for(int i = 0; i < plan.size(); i++)
+  {
+    unsigned int mx,my;
+    auto charmap = costmap_->getCharMap();
+    costmap_->worldToMap(plan[i].pose.position.x, plan[i].pose.position.y,mx,my);
+    auto index = costmap_->getIndex(mx,my);
+    if(charmap[index] == costmap_2d::LETHAL_OBSTACLE)
+      return true;
+  }
+
+  return false;
+}
+
 bool HectorExplorationPlanner::getTrajectory(const geometry_msgs::PoseStamped &start,
     std::vector<geometry_msgs::PoseStamped> &plan,
     bool use_info_gain){
@@ -760,7 +791,14 @@ bool HectorExplorationPlanner::getTrajectory(const geometry_msgs::PoseStamped &s
       }
     }
 
-    plan = smoothed_path.poses;
+    // judge if plan through obstacles
+    if(ObstacleInPlan(smoothed_path.poses))
+    {
+      ROS_WARN("[hector_exploration_planner] smoothed path through obstacles, using raw path instead");
+      plan = original_path.poses;
+    }
+    else
+      plan = smoothed_path.poses;
   }
 
   ROS_DEBUG("[hector_exploration_planner] END: getTrajectory. Plansize %u", (unsigned int)plan.size());

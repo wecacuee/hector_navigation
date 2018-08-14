@@ -38,7 +38,7 @@ public:
                  hector_exploration_planner::HectorExplorationPlanner *planner,
                  hector_exploration_planner::CustomCostmap2DROS *custom_costmap_2d_ros);
 
-  std::vector<int> getInfoGain();
+  std::vector<int> getInfoGain(bool use_gt = false);
 
   frontier_analysis::Pose2D getRobotPose();
 
