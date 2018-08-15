@@ -376,7 +376,7 @@ bool HectorExplorationPlanner::propagate_trans_cost(std::queue<int> init_queue,
                                                     bool use_cell_danger)
 {
   // exploration transform algorithm
-  while(init_queue.size()){
+  while(!init_queue.empty()){
     int point = init_queue.front();
     init_queue.pop();
 
@@ -391,7 +391,7 @@ bool HectorExplorationPlanner::propagate_trans_cost(std::queue<int> init_queue,
     for (int i = 0; i < 4; ++i) {
       if (isFree(straightPoints[i])) {
         unsigned int cell_danger = 0;
-        if(use_cell_danger)
+        if (use_cell_danger)
           cell_danger = cellDanger(straightPoints[i]);
         unsigned int neighbor_cost = minimum + STRAIGHT_COST + cell_danger;
 
@@ -400,9 +400,11 @@ bool HectorExplorationPlanner::propagate_trans_cost(std::queue<int> init_queue,
           init_queue.push(straightPoints[i]);
         }
       }
+    }
 
       // In extreme situation, there are two obstcles in diagnoal
       // and two free points in another diagonal, this will result in a problem
+    for (int i = 0; i < 4; ++i) {
       if (isFree(diagonalPoints[i])) {
         unsigned int cell_danger = 0;
         if(use_cell_danger)
@@ -580,7 +582,7 @@ bool HectorExplorationPlanner::buildobstacle_trans_array_(bool use_inflated_obst
     }
   }
 
-  unsigned int obstacle_cutoff_value = static_cast<unsigned int>((p_obstacle_cutoff_dist_ / costmap_->getResolution()) * STRAIGHT_COST + 0.5);
+//  unsigned int obstacle_cutoff_value = static_cast<unsigned int>((p_obstacle_cutoff_dist_ / costmap_->getResolution()) * STRAIGHT_COST + 0.5);
 
   // obstacle transform algorithm
   while(!myqueue.empty()){
@@ -588,7 +590,7 @@ bool HectorExplorationPlanner::buildobstacle_trans_array_(bool use_inflated_obst
     myqueue.pop();
 
     unsigned int minimum = obstacle_trans_array_[point];
-    if (minimum > obstacle_cutoff_value) continue;
+//    if (minimum > obstacle_cutoff_value) continue;
 
     int straightPoints[4];
     getStraightPoints(point,straightPoints);
@@ -1221,7 +1223,8 @@ inline unsigned int HectorExplorationPlanner::cellDanger(int point){
   //std::cout << obstacle_trans_array_[point] << "\n";
 
   if ((int)obstacle_trans_array_[point] <= p_min_obstacle_dist_){
-    return (unsigned int) std::pow((p_min_obstacle_dist_ - obstacle_trans_array_[point]), 1.1)*5;
+    return (p_min_obstacle_dist_ - obstacle_trans_array_[point])*5;
+    // return (unsigned int) std::pow((p_min_obstacle_dist_ - obstacle_trans_array_[point]), 1.1)*5;
   }
 
   return 0;
