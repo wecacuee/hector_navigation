@@ -39,7 +39,7 @@
 
 #define STRAIGHT_COST 100
 #define DIAGONAL_COST 141
-#define INFO_GAIN_WEIGHT 300
+#define INFO_GAIN_WEIGHT 150
 
 //#define STRAIGHT_COST 3
 //#define DIAGONAL_COST 4
@@ -247,8 +247,10 @@ bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &s
   }
 
   std::vector<int> info_gains;
+
+
   if(use_information_gain_)
-    info_gains = info_gain_client_->getInfoGain(true);
+    info_gains = info_gain_client_->getInfoGain(prediction_, prediction_gt_, use_information_gain_gt_);
   else
   {
     for(int i = 0; i < frontier_index_clusters_.size(); i++)
@@ -582,7 +584,7 @@ bool HectorExplorationPlanner::buildobstacle_trans_array_(bool use_inflated_obst
     }
   }
 
-//  unsigned int obstacle_cutoff_value = static_cast<unsigned int>((p_obstacle_cutoff_dist_ / costmap_->getResolution()) * STRAIGHT_COST + 0.5);
+  unsigned int obstacle_cutoff_value = static_cast<unsigned int>((p_obstacle_cutoff_dist_ / costmap_->getResolution()) * STRAIGHT_COST + 0.5);
 
   // obstacle transform algorithm
   while(!myqueue.empty()){

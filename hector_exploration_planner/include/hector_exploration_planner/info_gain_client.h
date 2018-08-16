@@ -38,12 +38,13 @@ public:
                  hector_exploration_planner::HectorExplorationPlanner *planner,
                  hector_exploration_planner::CustomCostmap2DROS *custom_costmap_2d_ros);
 
-  std::vector<int> getInfoGain(bool use_gt = false);
+  std::vector<int> getInfoGain(cv::Mat &prediction, cv::Mat &prediction_gt, bool use_gt = false);
 
   frontier_analysis::Pose2D getRobotPose();
 
 protected:
   sensor_msgs::ImagePtr convert_to_ros_image(cv::Mat mat);
+  cv::Mat convert_to_cv_image(sensor_msgs::Image &msg);
 
   ros::NodeHandle &nh_;
   ros::ServiceClient service_client_;

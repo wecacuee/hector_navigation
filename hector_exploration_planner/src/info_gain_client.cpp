@@ -7,6 +7,7 @@
 
 #include <tf/transform_datatypes.h>
 
+#include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
 
 using namespace hector_exploration_planner::frontier_analysis;
@@ -35,14 +36,27 @@ InfoGainClient::InfoGainClient(ros::NodeHandle &nh,
   );
 }
 
-std::vector<int> InfoGainClient::getInfoGain(bool use_gt)
+std::vector<int> InfoGainClient::getInfoGain(cv::Mat &prediction, cv::Mat &prediction_gt, bool use_gt)
 {
   cv::Mat costmap;
   std::vector<cv::Rect> bounding_boxes;
   std::vector<std::vector<frontier_analysis::Pose2D>> frontier_clusters;
 
   auto robot_pose = getRobotPose();
-  auto ground_truth_image = 255 - planner_->getGroundTruth();
+  cv::Mat ground_truth_image = 255 - planner_->getGroundTruth();
+
+  // TODO: move pre-processing to someplace better
+  const int dilatation = 1;
+  cv::Mat element = cv::getStructuringElement( cv::MORPH_RECT,
+                                               cv::Size( 2*dilatation + 1, 2*dilatation+1 ),
+                                               cv::Point( dilatation, dilatation ) );
+
+  cv::Mat temp_img = ground_truth_image.clone();
+
+  // closing (hole filling)
+  cv::dilate(ground_truth_image, temp_img, element);
+//        cv::erode(temp_img, current_groundtruth_map_, element);
+  ground_truth_image = temp_img;
 
   frontier_analysis::get_frontier_info(
     planner_,
@@ -108,6 +122,11 @@ std::vector<int> InfoGainClient::getInfoGain(bool use_gt)
     ROS_ERROR("Infomation gain service call failed");
   }
 
+  prediction = cv::imread("/tmp/info_gain_srv.png", CV_8UC4);
+  prediction_gt = cv::imread("/tmp/info_gain_srv_gt.png", CV_8UC4);
+//  prediction = convert_to_cv_image(srv.response.prediction).clone();
+//  prediction_gt = convert_to_cv_image(srv.response.prediction_gt).clone();
+
   if(use_gt)
     return information_gains_gt;
   else
@@ -152,4 +171,21 @@ sensor_msgs::ImagePtr InfoGainClient::convert_to_ros_image(cv::Mat mat)
   return cv_image.toImageMsg();
 }
 
+cv::Mat InfoGainClient::convert_to_cv_image(sensor_msgs::Image &msg)
+{
+//  cv_bridge::CvImagePtr cv_ptr;
+  std::vector<uchar> data = msg.data;
+  cv::Mat img(msg.height, msg.width, CV_8UC4, (void*)data.data());
+//  try
+//  {
+//    cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGRA8);
+//    img = cv_ptr->image;
+//  }
+//  catch (cv_bridge::Exception &e)
+//  {
+//    ROS_ERROR("cv_bridge exception: %s", e.what());
+//  }
+
+  return img;
+}
 } // namespace hector_exploration_planner

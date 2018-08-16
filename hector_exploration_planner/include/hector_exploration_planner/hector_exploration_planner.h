@@ -111,6 +111,11 @@ public:
 
   cv::Mat getGroundTruth() {return ground_truth_;}
 
+  cv::Mat getPrediction() { return prediction_; }
+  cv::Mat getPredictionGt() { return prediction_gt_; }
+
+  bool useInfoGain() {return use_information_gain_;}
+
 private:
   /**
    * Updates costmap data and resizes internal data structures if costmap size has changed. Should be called once before every planning command
@@ -290,6 +295,9 @@ private:
   boost::shared_ptr<boost::thread> frontiers_thread_;
 
   boost::shared_ptr<hector_exploration_planner::InfoGainClient> info_gain_client_;
+
+  cv::Mat prediction_;
+  cv::Mat prediction_gt_;
 
 };
 }
