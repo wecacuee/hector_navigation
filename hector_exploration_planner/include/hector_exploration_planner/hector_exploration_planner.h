@@ -114,7 +114,7 @@ public:
   cv::Mat getPrediction() { return prediction_; }
   cv::Mat getPredictionGt() { return prediction_gt_; }
 
-  bool useInfoGain() {return use_information_gain_;}
+  bool useInfoGain() {return information_gain_enabled_;}
 
 private:
   /**
@@ -259,8 +259,9 @@ private:
   bool p_use_danger_;
 
   // use information gain or not
-  bool use_information_gain_;
-  bool use_information_gain_gt_; // use ground truth information gain or not
+  bool information_gain_enabled_;
+  bool information_gain_gt_enabled_; // use ground truth information gain or not
+  int information_gain_weight_ = 200;
 
 
   // path smoothing params

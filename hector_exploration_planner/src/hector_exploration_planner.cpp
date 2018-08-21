@@ -36,14 +36,13 @@
 #include <opencv2/opencv.hpp>
 
 #include <hector_exploration_planner/ExplorationPlannerConfig.h>
+#include "../../../cmake-build-release/devel/include/hector_exploration_planner/ExplorationPlannerConfig.h"
 
 #define STRAIGHT_COST 100
 #define DIAGONAL_COST 141
-#define INFO_GAIN_WEIGHT 150
 
 //#define STRAIGHT_COST 3
 //#define DIAGONAL_COST 4
-//#define INFO_GAIN_WEIGHT 3
 
 using namespace hector_exploration_planner;
 
@@ -162,8 +161,9 @@ void HectorExplorationPlanner::dynRecParamCallback(hector_exploration_planner::E
   p_frontier_neighbor_dist_ = config.frontier_neighbor_dist;
   p_min_frontier_cluster_size_ = config.min_frontier_cluster_size;
   p_use_danger_ = config.use_danger;
-  use_information_gain_ = config.use_info_gain;
-  use_information_gain_gt_ = config.use_info_gain_gt;
+  information_gain_enabled_ = config.info_gain_enabled;
+  information_gain_gt_enabled_ = config.info_gain_gt_enabled;
+  information_gain_weight_ = config.info_gain_weight;
 
   {
     boost::mutex::scoped_lock lock(path_smoother_mutex_);
@@ -249,8 +249,8 @@ bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &s
   std::vector<int> info_gains;
 
 
-  if(use_information_gain_)
-    info_gains = info_gain_client_->getInfoGain(prediction_, prediction_gt_, use_information_gain_gt_);
+  if(information_gain_enabled_)
+    info_gains = info_gain_client_->getInfoGain(prediction_, prediction_gt_, information_gain_gt_enabled_);
   else
   {
     for(int i = 0; i < frontier_index_clusters_.size(); i++)
@@ -262,13 +262,13 @@ bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &s
     return false;
   }
 
-  if(!getTrajectory(start,plan, this->use_information_gain_)) {
+  if(!getTrajectory(start,plan, this->information_gain_enabled_)) {
     ROS_WARN("[hector_exploration_planner] exploration: could not plan to frontier, fail");
     return false;
   }
 
   // get the other plan
-  if(this->use_information_gain_) {
+  if(this->information_gain_enabled_) {
     getTrajectory(start,the_other_plan, false);
   }
   else {
@@ -537,7 +537,8 @@ bool HectorExplorationPlanner::buildexploration_trans_array_(
 
       exploration_trans_array_[goal_point] = 0;
 
-      unsigned int info_gain_cost = INFO_GAIN_WEIGHT * (unsigned int)(sqrt(max_info_gain) - sqrt(info_gains[i]));
+      int info_gain_weight = this->information_gain_weight_;
+      unsigned int info_gain_cost = info_gain_weight * (unsigned int)(sqrt(max_info_gain) - sqrt(info_gains[i]));
       exploration_trans_array_info_gain_[goal_point] = info_gain_cost;
 
       is_goal_array_[goal_point] = true;
