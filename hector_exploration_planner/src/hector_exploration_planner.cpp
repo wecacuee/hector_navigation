@@ -36,7 +36,6 @@
 #include <opencv2/opencv.hpp>
 
 #include <hector_exploration_planner/ExplorationPlannerConfig.h>
-#include "../../../cmake-build-release/devel/include/hector_exploration_planner/ExplorationPlannerConfig.h"
 
 #define STRAIGHT_COST 100
 #define DIAGONAL_COST 141
