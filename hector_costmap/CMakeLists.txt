@@ -17,7 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(OpenCV 2.4 REQUIRED)
+find_package(OpenCV REQUIRED) # 2.4 REQUIRED)
 
 generate_dynamic_reconfigure_options(
   cfg/CostMapCalculation.cfg
