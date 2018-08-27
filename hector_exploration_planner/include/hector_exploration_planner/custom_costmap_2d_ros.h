@@ -205,6 +205,9 @@ public:
    * getUnpaddedRobotFootprint(). */
   void setUnpaddedRobotFootprintPolygon(const geometry_msgs::Polygon& footprint);
 
+  std::string getName() { return name_; }
+
+  tf::TransformListener &getTransformListener() { return tf_; };
   /**
    * @brief set robot pose (odom)
    */
