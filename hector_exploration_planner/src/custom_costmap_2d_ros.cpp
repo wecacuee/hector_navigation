@@ -593,7 +593,7 @@ bool CustomCostmap2DROS::getRobotPose(tf::Stamped<tf::Pose>& global_pose)
     tf::Pose pose;
     tf::poseMsgToTF(odom.pose.pose, pose);
 
-    global_pose = tf::Stamped<tf::Pose>(pose, odom.header.stamp, odom.header.frame_id);
+    global_pose = tf::Stamped<tf::Pose>(pose, odom.header.stamp, global_frame_);
 
     return true;
   }
