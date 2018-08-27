@@ -66,6 +66,9 @@
   <run_depend>image_transport</run_depend>
   <run_depend>cv_bridge</run_depend>
 
+  <build_depend>global_planner</build_depend>
+  <run_depend>global_planner</run_depend>
+
   <build_depend>path_smoothing_ros</build_depend>
   <run_depend>path_smoothing_ros</run_depend>
 

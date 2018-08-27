@@ -95,6 +95,9 @@ void HectorExplorationPlanner::initialize(std::string name,
 
   // initialize costmaps
   this->costmap_ros_ = costmap_ros_in;
+
+  goal_planner_.reset(new global_planner::GlobalPlanner("global_planner", costmap_ros_in->getCostmap(), costmap_ros_in->getGlobalFrameID()));
+
   this->setupMapData();
 
   // initialize parameters
@@ -281,6 +284,18 @@ bool HectorExplorationPlanner::doExploration(const geometry_msgs::PoseStamped &s
     costmap_->worldToMap(thisgoal.pose.position.x,thisgoal.pose.position.y,mx,my);
     previous_goal_ = costmap_->getIndex(mx,my);
   }
+
+  if (!goals.empty())
+  {
+    std::vector<geometry_msgs::PoseStamped> nearest_frontier_plan;
+    // TODO: nearest frontier instead of first
+    auto plan_status = goal_planner_->makePlan(start, goals[0], nearest_frontier_plan);
+    if (!plan_status)
+    {
+      ROS_ERROR("Could not plan to nearest frontier");
+    }
+  }
+
 
   ROS_INFO("[hector_exploration_planner] exploration: plan to a frontier has been found! plansize: %u", (unsigned int)plan.size());
   return true;

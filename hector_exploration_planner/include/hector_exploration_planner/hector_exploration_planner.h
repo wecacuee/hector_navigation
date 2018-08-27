@@ -35,6 +35,7 @@
 #include <nav_msgs/Odometry.h>
 
 #include <dynamic_reconfigure/server.h>
+#include <global_planner/planner_core.h>
 
 #include <hector_exploration_planner/exploration_transform_vis.h>
 //#include <hector_exploration_planner/frontier_vis.h>
@@ -299,6 +300,8 @@ private:
 
   cv::Mat prediction_;
   cv::Mat prediction_gt_;
+
+  boost::shared_ptr<global_planner::GlobalPlanner> goal_planner_;
 
 };
 }

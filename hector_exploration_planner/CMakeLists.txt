@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   costmap_2d
   dynamic_reconfigure
   geometry_msgs
+  global_planner
   hector_nav_msgs
   nav_core
   nav_msgs
@@ -150,9 +151,10 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg ${catkin_EXPORTED_TARGET
 #   ${catkin_LIBRARIES}
 # )
 
-# target_link_libraries(
-#   ${PROJECT_NAME}
-# )
+ target_link_libraries(
+   ${PROJECT_NAME}
+   ${catkin_LIBRARIES}
+ )
 #target_link_libraries(hector_exploration_base_global_planner_plugin ${PROJECT_NAME})
 
 #add_executable(frontiers_test tests/frontiers_test.cpp)
