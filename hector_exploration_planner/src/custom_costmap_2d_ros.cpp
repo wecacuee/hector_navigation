@@ -64,7 +64,7 @@ void move_parameter(ros::NodeHandle& old_h, ros::NodeHandle& new_h, std::string 
   if (should_delete) old_h.deleteParam(name);
 }
 
-CustomCostmap2DROS::CustomCostmap2DROS(std::string name, tf::TransformListener& tf, bool use_original_behavior) :
+CustomCostmap2DROS::CustomCostmap2DROS(std::string name, tf2_ros::Buffer& tf, bool use_original_behavior) :
   layered_costmap_(NULL),
   name_(name),
   tf_(tf),
@@ -83,23 +83,20 @@ CustomCostmap2DROS::CustomCostmap2DROS(std::string name, tf::TransformListener& 
   footprint_padding_(0.0)
 {
   // Initialize old pose with something
-  old_pose_.setIdentity();
-  old_pose_.setOrigin(tf::Vector3(1e30, 1e30, 1e30));
+  old_pose_.pose.orientation.x = 0.0;
+  old_pose_.pose.orientation.y = 0.0;
+  old_pose_.pose.orientation.z = 0.0;
+  old_pose_.pose.orientation.w = 1.0;
+  old_pose_.pose.position.x = 1e30;
+  old_pose_.pose.position.y = 1e30;
+  old_pose_.pose.position.z = 1e30;
 
   ros::NodeHandle private_nh("~/" + name);
   ros::NodeHandle g_nh;
 
-  // get our tf prefix
-  ros::NodeHandle prefix_nh;
-  std::string tf_prefix = tf::getPrefixParam(prefix_nh);
-
   // get two frames
   private_nh.param("global_frame", global_frame_, std::string("/map"));
   private_nh.param("robot_base_frame", robot_base_frame_, std::string("base_link"));
-
-  // make sure that we set the frames appropriately based on the tf_prefix
-  global_frame_ = tf::resolve(tf_prefix, global_frame_);
-  robot_base_frame_ = tf::resolve(tf_prefix, robot_base_frame_);
 
   if (use_original_behavior_)
   {
@@ -540,12 +537,12 @@ void CustomCostmap2DROS::resetLayers()
   }
 }
 
-bool CustomCostmap2DROS::getRobotPose(tf::Stamped<tf::Pose>& global_pose)
+bool CustomCostmap2DROS::getRobotPose(geometry_msgs::PoseStamped& global_pose)
 {
   if (use_original_behavior_)
   {
     global_pose.setIdentity();
-    tf::Stamped<tf::Pose> robot_pose;
+    geometry_msgs::PoseStamped robot_pose;
     robot_pose.setIdentity();
     robot_pose.frame_id_ = robot_base_frame_;
     robot_pose.stamp_ = ros::Time();
@@ -590,18 +587,16 @@ bool CustomCostmap2DROS::getRobotPose(tf::Stamped<tf::Pose>& global_pose)
       odom = robot_odom_ ;
     }
 
-    tf::Pose pose;
-    tf::poseMsgToTF(odom.pose.pose, pose);
-
-    global_pose = tf::Stamped<tf::Pose>(pose, odom.header.stamp, odom.header.frame_id);
-
+    global_pose.pose = odom.pose.pose;
+    global_pose.header.stamp = odom.header.stamp;
+    global_pose.header.frame_id = odom.header.frame_id;
     return true;
   }
 }
 
 void CustomCostmap2DROS::getOrientedFootprint(std::vector<geometry_msgs::Point>& oriented_footprint)
 {
-  tf::Stamped<tf::Pose> global_pose;
+  geometry_msgs::PoseStamped global_pose;
   if (!getRobotPose(global_pose))
     return;
 
