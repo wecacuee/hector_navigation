@@ -45,6 +45,9 @@
 #include <string>
 #include <algorithm>
 #include <vector>
+#include <geometry_msgs/PoseStamped.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2/utils.h>
 
 #include <hector_exploration_planner/custom_costmap_2d_ros.h>
 
@@ -105,8 +108,7 @@ CustomCostmap2DROS::CustomCostmap2DROS(std::string name, tf2_ros::Buffer& tf, bo
     // we need to make sure that the transform between the robot base frame and the global frame is available
     while (ros::ok()
            &&
-           !tf_.waitForTransform(global_frame_, robot_base_frame_, ros::Time(), ros::Duration(0.1), ros::Duration(0.01),
-                                 &tf_error))
+           !tf_.canTransform(global_frame_, robot_base_frame_, ros::Time(), ros::Duration(0.1), &tf_error))
     {
       ros::spinOnce();
       if (last_error + ros::Duration(5.0) < ros::Time::now())
@@ -372,12 +374,22 @@ void CustomCostmap2DROS::setUnpaddedRobotFootprint(const std::vector<geometry_ms
   layered_costmap_->setFootprint(padded_footprint_);
 }
 
+bool _isAlmostEqual(const geometry_msgs::PoseStamped& msg1,
+                    const geometry_msgs::PoseStamped& msg2) {
+  tf2::Stamped<tf2::Transform> t1;
+  tf2::fromMsg(msg1, t1);
+  tf2::Stamped<tf2::Transform> t2;
+  tf2::fromMsg(msg2, t2);
+
+  return (t1.getOrigin().distance(t2.getOrigin()) < 1e3 && fabs(t1.getRotation().angle(t2.getRotation())) < 1e-3);
+}
+
 void CustomCostmap2DROS::movementCB(const ros::TimerEvent &event)
 {
   // don't allow configuration to happen while this check occurs
   // boost::recursive_mutex::scoped_lock mcl(configuration_mutex_);
 
-  tf::Stamped < tf::Pose > new_pose;
+  geometry_msgs::PoseStamped new_pose;
 
   if (!getRobotPose(new_pose))
   {
@@ -385,8 +397,7 @@ void CustomCostmap2DROS::movementCB(const ros::TimerEvent &event)
     robot_stopped_ = false;
   }
     // make sure that the robot is not moving
-  else if (fabs((old_pose_.getOrigin() - new_pose.getOrigin()).length()) < 1e-3
-           && fabs(old_pose_.getRotation().angle(new_pose.getRotation())) < 1e-3)
+  else if (_isAlmostEqual(old_pose_, new_pose))
   {
     old_pose_ = new_pose;
     robot_stopped_ = true;
@@ -452,12 +463,12 @@ void CustomCostmap2DROS::updateMap()
   if (!stop_updates_)
   {
     // get global pose
-    tf::Stamped < tf::Pose > pose;
+    geometry_msgs::PoseStamped pose;
     if (getRobotPose (pose))
     {
-      double x = pose.getOrigin().x(),
-        y = pose.getOrigin().y(),
-        yaw = tf::getYaw(pose.getRotation());
+      double x = pose.pose.position.x,
+        y = pose.pose.position.y,
+        yaw = tf2::getYaw(pose.pose.orientation);
 
       layered_costmap_->updateMap(x, y, yaw);
 
@@ -537,43 +548,53 @@ void CustomCostmap2DROS::resetLayers()
   }
 }
 
+void _setIdentity(geometry_msgs::PoseStamped& pose) {
+  pose.pose.position.x = 0;
+  pose.pose.position.y = 0;
+  pose.pose.position.z = 0;
+  pose.pose.orientation.x = 0;
+  pose.pose.orientation.y = 0;
+  pose.pose.orientation.z = 0;
+  pose.pose.orientation.w = 1;
+}
+
 bool CustomCostmap2DROS::getRobotPose(geometry_msgs::PoseStamped& global_pose)
 {
   if (use_original_behavior_)
   {
-    global_pose.setIdentity();
+    _setIdentity(global_pose);
     geometry_msgs::PoseStamped robot_pose;
-    robot_pose.setIdentity();
-    robot_pose.frame_id_ = robot_base_frame_;
-    robot_pose.stamp_ = ros::Time();
+    _setIdentity(robot_pose);
+    robot_pose.header.frame_id = robot_base_frame_;
+    robot_pose.header.stamp = ros::Time();
     ros::Time current_time = ros::Time::now();  // save time for checking tf delay later
 
     // get the global pose of the robot
     try
     {
-      tf_.transformPose(global_frame_, robot_pose, global_pose);
+      tf_.transform(robot_pose, global_pose, global_frame_);
     }
-    catch (tf::LookupException &ex)
+    catch (tf2::LookupException &ex)
     {
       ROS_ERROR_THROTTLE(1.0, "No Transform available Error looking up robot pose: %s\n", ex.what());
       return false;
     }
-    catch (tf::ConnectivityException &ex)
+    catch (tf2::ConnectivityException &ex)
     {
       ROS_ERROR_THROTTLE(1.0, "Connectivity Error looking up robot pose: %s\n", ex.what());
       return false;
     }
-    catch (tf::ExtrapolationException &ex)
+    catch (tf2::ExtrapolationException &ex)
     {
       ROS_ERROR_THROTTLE(1.0, "Extrapolation Error looking up robot pose: %s\n", ex.what());
       return false;
     }
     // check global_pose timeout
-    if (current_time.toSec() - global_pose.stamp_.toSec() > transform_tolerance_)
+    if (current_time.toSec() - global_pose.header.stamp.toSec() > transform_tolerance_)
     {
       ROS_WARN_THROTTLE(1.0,
                         "CustomCostmap2DROS transform timeout. Current time: %.4f, global_pose stamp: %.4f, tolerance: %.4f",
-                        current_time.toSec(), global_pose.stamp_.toSec(), transform_tolerance_);
+                        current_time.toSec(), global_pose.header.stamp.toSec(), transform_tolerance_);
       return false;
     }
 
@@ -600,8 +621,8 @@ void CustomCostmap2DROS::getOrientedFootprint(std::vector<geometry_msgs::Point>&
   if (!getRobotPose(global_pose))
     return;
 
-  double yaw = tf::getYaw(global_pose.getRotation());
-  transformFootprint(global_pose.getOrigin().x(), global_pose.getOrigin().y(), yaw,
+  double yaw = tf2::getYaw(global_pose.pose.orientation);
+  transformFootprint(global_pose.pose.position.x, global_pose.pose.position.y, yaw,
                      padded_footprint_, oriented_footprint);
 }
 

@@ -29,21 +29,20 @@
 #include "hector_path_follower/hector_path_follower.h"
 
 #include <ros/ros.h>
-#include <tf/tf.h>
+#include <tf2_ros/transform_listener.h>
 
 
 
 int main(int argc, char **argv) {
   ros::init(argc, argv, ROS_PACKAGE_NAME);
 
-  tf::TransformListener* tfl = new tf::TransformListener();
+  tf2_ros::Buffer buffer;
+  tf2_ros::TransformListener tfl(buffer);
 
   pose_follower::HectorPathFollower pf;
-  pf.initialize(tfl);
+  pf.initialize(&buffer);
 
   ros::spin();
-
-  delete tfl;
 
   return 0;
 }

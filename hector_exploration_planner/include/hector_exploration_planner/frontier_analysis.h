@@ -242,7 +242,7 @@ void thresholdCostmap(const cv::Mat &original, cv::Mat &unknown, cv::Mat &free, 
  * @param odometry
  * @return transform from estimated coordinates to groundtruth coordinates
  */
-tf::Transform getTransformGroundtruthEstimated(
+tf2::Transform getTransformGroundtruthEstimated(
   const boost::shared_ptr<hector_exploration_planner::CustomCostmap2DROS> &costmap_2d_ros,
   const nav_msgs::Odometry &odometry);
 
@@ -261,7 +261,7 @@ cv::Mat getMapCenteringAffineTransformation(const boost::shared_ptr<costmap_2d::
  * @return affine transformation
  */
 cv::Mat getMapGroundtruthAffineTransformation(const boost::shared_ptr<costmap_2d::Costmap2D> static_costmap,
-                                              const tf::Transform &transform_gt_est);
+                                              const tf2::Transform &transform_gt_est);
 
 
 /**
@@ -271,9 +271,9 @@ cv::Mat getMapGroundtruthAffineTransformation(const boost::shared_ptr<costmap_2d
  * @param target_pose
  * @return if the pose query was successful
  */
-bool transformPose(tf::Stamped<tf::Pose> source_pose,
+bool transformPose(geometry_msgs::PoseStamped source_pose,
                    std::string target_frame_id,
-                   tf::Stamped<tf::Pose> &target_pose);
+                   geometry_msgs::PoseStamped &target_pose);
 
 /**
  *

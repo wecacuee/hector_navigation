@@ -19,7 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   cv_bridge
   path_smoothing_ros
-
+  tf2_geometry_msgs
   online_map_completion_msgs
 )
 
@@ -132,6 +132,10 @@ add_library(
   #  src/frontier_vis.cpp
 
   src/info_gain_client.cpp
+)
+target_link_libraries(
+${PROJECT_NAME}
+${catkin_LIBRARIES}
 )
 #        tests/frontiers_test.cpp)
 #add_library(hector_exploration_base_global_planner_plugin src/hector_exploration_base_global_planner_plugin.cpp)

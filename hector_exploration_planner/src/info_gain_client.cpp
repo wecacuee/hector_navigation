@@ -6,6 +6,7 @@
 #include <online_map_completion_msgs/InfoGains.h>
 
 #include <tf/transform_datatypes.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
@@ -136,18 +137,16 @@ std::vector<int> InfoGainClient::getInfoGain(cv::Mat &prediction, cv::Mat &predi
 frontier_analysis::Pose2D InfoGainClient::getRobotPose()
 {
   geometry_msgs::PoseStamped pose;
-  tf::Stamped<tf::Pose> robot_pose_tf;
-  bool robot_pose_status = costmap_2d_ros_->getRobotPose(robot_pose_tf);
+  bool robot_pose_status = costmap_2d_ros_->getRobotPose(pose);
+  tf2::Stamped<tf2::Transform> transform;
+  tf2::fromMsg(pose, transform);
+  tf2::Quaternion orientation = transform.getRotation();
 
-  if (!robot_pose_status || robot_pose_tf.getRotation().length2() < 1e-5)
+  if (!robot_pose_status || orientation.length2() < 1e-5)
   {
     ROS_ERROR("Failed to get robot pose from costmap");
   }
 
-  tf::poseStampedTFToMsg(robot_pose_tf, pose);
-
-  tf::Quaternion orientation;
-  tf::quaternionMsgToTF(pose.pose.orientation, orientation);
   if (orientation.length2() < 1e-5)
   {
     ROS_ERROR("poseStampedTFToMsg incorrect");

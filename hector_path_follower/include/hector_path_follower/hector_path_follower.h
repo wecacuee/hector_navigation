@@ -32,9 +32,9 @@
 #ifndef HECTOR_PATH_FOLLOWER_H_
 #define HECTOR_PATH_FOLLOWER_H_
 #include <ros/ros.h>
-#include <tf/tf.h>
 #include <tf/transform_datatypes.h>
-#include <tf/transform_listener.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2/LinearMath/Transform.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
@@ -52,7 +52,7 @@ namespace pose_follower {
   {
     public:
       HectorPathFollower();
-      void initialize(tf::TransformListener* tf);
+      void initialize(tf2_ros::Buffer* tf);
       bool isGoalReached();
       bool setPlan(const std::vector<geometry_msgs::PoseStamped>& global_plan);
       bool computeVelocityCommands(geometry_msgs::Twist& cmd_vel);
@@ -85,18 +85,19 @@ namespace pose_follower {
         return n < 0.0 ? -1.0 : 1.0;
       }
 
-      geometry_msgs::Twist diff2D(const tf::Pose& pose1, const tf::Pose&  pose2);
+    geometry_msgs::Twist diff2D(const geometry_msgs::PoseStamped& pose1,
+                                const geometry_msgs::PoseStamped&  pose2);
       geometry_msgs::Twist limitTwist(const geometry_msgs::Twist& twist);
       double headingDiff(double pt_x, double pt_y, double x, double y, double heading);
 
-      bool transformGlobalPlan(const tf::TransformListener& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan, const std::string& global_frame,
+      bool transformGlobalPlan(const tf2_ros::Buffer& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan, const std::string& global_frame,
           std::vector<geometry_msgs::PoseStamped>& transformed_plan);
 
       //void odomCallback(const nav_msgs::Odometry::ConstPtr& msg);
       
-      bool getRobotPose(tf::Stamped<tf::Pose>& global_pose);
+    bool getRobotPose(geometry_msgs::PoseStamped& global_pose);
 
-      tf::TransformListener* tf_;
+      tf2_ros::Buffer* tf_;
 
       double K_trans_, K_rot_, tolerance_trans_, tolerance_rot_;
       double tolerance_timeout_;

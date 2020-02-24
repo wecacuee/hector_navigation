@@ -6,8 +6,11 @@ project(hector_path_follower)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   nav_msgs
+  geometry_msgs
   roscpp
+  tf2
   tf
+  tf2_geometry_msgs
   dynamic_reconfigure
 )
 
@@ -121,6 +124,7 @@ add_dependencies(hector_path_follower_node  ${PROJECT_NAME}_gencfg)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(hector_path_follower_node
   ${catkin_LIBRARIES}
+  ${tf2_geometry_msgs_LIBRARIES}
 )
 
 #############

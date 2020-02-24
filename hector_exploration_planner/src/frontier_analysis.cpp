@@ -25,9 +25,9 @@
 #include <ros/ros.h>
 #include <costmap_2d/static_layer.h>
 #include <nav_msgs/Odometry.h>
-#include <tf/tf.h>
-#include <tf/transform_datatypes.h>
-#include <tf/transform_listener.h>
+#include <tf2/transform_datatypes.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2/utils.h>
 
 namespace hector_exploration_planner
 {
@@ -516,7 +516,7 @@ cv::Mat getMapCenteringAffineTransformation(const boost::shared_ptr<costmap_2d::
 }
 
 cv::Mat getMapGroundtruthAffineTransformation(const boost::shared_ptr<costmap_2d::Costmap2D> static_costmap,
-                                              const tf::Transform &transform_gt_est)
+                                              const tf2::Transform &transform_gt_est)
 {
   auto resolution = static_costmap->getResolution();
 
@@ -524,7 +524,7 @@ cv::Mat getMapGroundtruthAffineTransformation(const boost::shared_ptr<costmap_2d
   auto translation_x = translation_tf_vector.getX() / resolution;
   auto translation_y = translation_tf_vector.getY() / resolution;
 
-  auto rotation_angle = tf::getYaw(transform_gt_est.getRotation());
+  auto rotation_angle = tf2::getYaw(transform_gt_est.getRotation());
   auto cos_rotation = std::cos(rotation_angle);
   auto sin_rotation = std::sin(rotation_angle);
 
@@ -579,7 +579,7 @@ Pose2D worldPose2MapPose(const geometry_msgs::PoseStamped &world_pose,
 
   double world_x = world_pose.pose.position.x;
   double world_y = world_pose.pose.position.y;
-  double yaw = tf::getYaw(world_pose.pose.orientation);
+  double yaw = tf2::getYaw(world_pose.pose.orientation);
 
   unsigned int map_x, map_y;
   costmap.worldToMap(world_x, world_y, map_x, map_y);
@@ -626,7 +626,7 @@ std::vector<cv::Point> worldPointsToMapPoints(const std::vector<geometry_msgs::P
     unsigned int map_x;
     unsigned int map_y;
 
-    tf::Vector3 estimated_position_vector(
+    tf2::Vector3 estimated_position_vector(
       world_point.pose.position.x, world_point.pose.position.y, world_point.pose.position.z
     );
     auto groundtruth_position_vector = estimated_position_vector;

@@ -34,6 +34,9 @@
 #include <hector_nav_msgs/GetRobotTrajectory.h>
 #include <Eigen/Geometry>
 #include <opencv2/opencv.hpp>
+#include <tf2/utils.h>
+#include <tf/transform_datatypes.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <hector_exploration_planner/ExplorationPlannerConfig.h>
 
@@ -297,7 +300,7 @@ float HectorExplorationPlanner::angleDifferenceWall(const geometry_msgs::PoseSta
   int goal_proj_x = gx-mxs;
   int goal_proj_y = gy-mys;
 
-  float start_angle = tf::getYaw(start.pose.orientation);
+  float start_angle = tf2::getYaw(start.pose.orientation);
   float goal_angle = std::atan2(goal_proj_y,goal_proj_x);
 
   float both_angle = 0;
@@ -1169,13 +1172,11 @@ bool HectorExplorationPlanner::isFree(int point){
 
 bool HectorExplorationPlanner::isFrontierReached(int point){
 
-  tf::Stamped<tf::Pose> robotPose;
+  geometry_msgs::PoseStamped robotPoseMsg;
 
-  if(!costmap_ros_->getRobotPose(robotPose)) {
+  if(!costmap_ros_->getRobotPose(robotPoseMsg)) {
     ROS_WARN("[hector_exploration_planner]: Failed to get RobotPose");
   }
-  geometry_msgs::PoseStamped robotPoseMsg;
-  tf::poseStampedTFToMsg(robotPose, robotPoseMsg);
 
   unsigned int fx,fy;
   double wfx,wfy;
@@ -1243,7 +1244,7 @@ float HectorExplorationPlanner::angleDifference(const geometry_msgs::PoseStamped
   int goal_proj_x = gx-mxs;
   int goal_proj_y = gy-mys;
 
-  float start_angle = tf::getYaw(start.pose.orientation);
+  float start_angle = tf2::getYaw(start.pose.orientation);
   float goal_angle = std::atan2(goal_proj_y,goal_proj_x);
 
   float both_angle = 0;

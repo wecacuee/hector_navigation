@@ -34,13 +34,13 @@
 class SimpleExplorationController
 {
 public:
-  SimpleExplorationController()
+  SimpleExplorationController(tf2_ros::Buffer& tb) : tfb_(&tb)
   {
     ros::NodeHandle nh;
 
     exploration_plan_service_client_ = nh.serviceClient<hector_nav_msgs::GetRobotTrajectory>("get_exploration_path");
 
-    path_follower_.initialize(&tfl_);
+    path_follower_.initialize(tfb_);
 
     exploration_plan_generation_timer_ = nh.createTimer(ros::Duration(15.0), &SimpleExplorationController::timerPlanExploration, this, false );
     cmd_vel_generator_timer_ = nh.createTimer(ros::Duration(0.1), &SimpleExplorationController::timerCmdVelGeneration, this, false );
@@ -73,7 +73,7 @@ protected:
   ros::ServiceClient exploration_plan_service_client_;
   ros::Publisher vel_pub_;
 
-  tf::TransformListener tfl_;
+  tf2_ros::Buffer* tfb_;
 
   pose_follower::HectorPathFollower path_follower_;
 
@@ -84,7 +84,9 @@ protected:
 int main(int argc, char **argv) {
   ros::init(argc, argv, ROS_PACKAGE_NAME);
 
-  SimpleExplorationController ec;
+  tf2_ros::Buffer tb;
+  tf2_ros::TransformListener tl(tb);
+  SimpleExplorationController ec(tb);
 
   ros::spin();
 

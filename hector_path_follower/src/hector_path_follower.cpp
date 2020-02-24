@@ -30,6 +30,7 @@
 * Based heavily on the pose_follower package
 *********************************************************************/
 #include <hector_path_follower/hector_path_follower.h>
+#include <tf2/utils.h>
 
 /* definition to expand macro then apply to pragma message */
 #define VALUE_TO_STRING(x) #x
@@ -48,7 +49,7 @@ namespace pose_follower {
 #endif
   }
 
-  void HectorPathFollower::initialize(tf::TransformListener* tf) {
+  void HectorPathFollower::initialize(tf2_ros::Buffer* tf) {
     tf_ = tf;
     current_waypoint_ = 0;
     goal_reached_time_ = ros::Time::now();
@@ -168,7 +169,7 @@ namespace pose_follower {
       return false;
 
     //get the current pose of the robot in the fixed frame
-    tf::Stamped<tf::Pose> robot_pose;
+    geometry_msgs::PoseStamped robot_pose;
     if(!this->getRobotPose(robot_pose)){
       ROS_ERROR("[hector_path_follower] Can't get robot pose");
       geometry_msgs::Twist empty_twist;
@@ -180,11 +181,10 @@ namespace pose_follower {
 
 
     //we want to compute a velocity command based on our current waypoint
-    tf::Stamped<tf::Pose> target_pose;
-    tf::poseStampedMsgToTF(global_plan_[current_waypoint_], target_pose);
+    geometry_msgs::PoseStamped target_pose = global_plan_[current_waypoint_];
 
-    ROS_DEBUG("HectorPathFollower: current robot pose %f %f ==> %f", robot_pose.getOrigin().x(), robot_pose.getOrigin().y(), tf::getYaw(robot_pose.getRotation()));
-    ROS_DEBUG("HectorPathFollower: target robot pose %f %f ==> %f", target_pose.getOrigin().x(), target_pose.getOrigin().y(), tf::getYaw(target_pose.getRotation()));
+    ROS_DEBUG("HectorPathFollower: current robot pose %f %f ==> %f", robot_pose.pose.position.x, robot_pose.pose.position.y, tf2::getYaw(robot_pose.pose.orientation));
+    ROS_DEBUG("HectorPathFollower: target robot pose %f %f ==> %f", target_pose.pose.position.x, target_pose.pose.position.y, tf2::getYaw(target_pose.pose.orientation));
 
     //get the difference between the two poses
     geometry_msgs::Twist diff = diff2D(target_pose, robot_pose);
@@ -233,7 +233,7 @@ namespace pose_follower {
       if(current_waypoint_ < global_plan_.size() - 1)
       {
         current_waypoint_++;
-        tf::poseStampedMsgToTF(global_plan_[current_waypoint_], target_pose);
+        target_pose = global_plan_[current_waypoint_];
         diff = diff2D(target_pose, robot_pose);
       }
       else
@@ -279,13 +279,19 @@ namespace pose_follower {
     return false;
   }
 
-  geometry_msgs::Twist HectorPathFollower::diff2D(const tf::Pose& pose1, const tf::Pose& pose2)
+  geometry_msgs::Twist HectorPathFollower::diff2D(const geometry_msgs::PoseStamped& pose1msg, const geometry_msgs::PoseStamped& pose2msg)
   {
+    tf2::Stamped<tf2::Transform> pose1;
+    tf2::fromMsg(pose1msg, pose1);
+
+    tf2::Stamped<tf2::Transform> pose2;
+    tf2::fromMsg(pose2msg, pose2);
+
     geometry_msgs::Twist res;
-    tf::Pose diff = pose2.inverse() * pose1;
+    tf2::Transform diff = pose2.inverse() * pose1;
     res.linear.x = diff.getOrigin().x();
     res.linear.y = diff.getOrigin().y();
-    res.angular.z = tf::getYaw(diff.getRotation());
+    res.angular.z = tf2::getYaw(diff.getRotation());
 
     if(holonomic_ || (fabs(res.linear.x) <= tolerance_trans_ && fabs(res.linear.y) <= tolerance_trans_))
       return res;
@@ -295,11 +301,13 @@ namespace pose_follower {
     
     //we want to compute a goal based on the heading difference between our pose and the target
     double yaw_diff = headingDiff(pose1.getOrigin().x(), pose1.getOrigin().y(), 
-        pose2.getOrigin().x(), pose2.getOrigin().y(), tf::getYaw(pose2.getRotation()));
+                                  pose2.getOrigin().x(), pose2.getOrigin().y(),
+                                  tf2::getYaw(pose2.getRotation()));
 
     //we'll also check if we can move more effectively backwards
     double neg_yaw_diff = headingDiff(pose1.getOrigin().x(), pose1.getOrigin().y(), 
-        pose2.getOrigin().x(), pose2.getOrigin().y(), M_PI + tf::getYaw(pose2.getRotation()));
+                                      pose2.getOrigin().x(), pose2.getOrigin().y(),
+                                      M_PI + tf2::getYaw(pose2.getRotation()));
 
     //check if its faster to just back up
     if(fabs(neg_yaw_diff) < fabs(yaw_diff)){
@@ -308,15 +316,16 @@ namespace pose_follower {
     }
 
     //compute the desired quaterion
-    tf::Quaternion rot_diff = tf::createQuaternionFromYaw(yaw_diff);
-    tf::Quaternion rot = pose2.getRotation() * rot_diff;
-    tf::Pose new_pose = pose1;
+    tf2::Quaternion rot_diff;
+    rot_diff.setRPY(0, 0, yaw_diff);
+    tf2::Quaternion rot = pose2.getRotation() * rot_diff;
+    tf2::Transform new_pose = pose1;
     new_pose.setRotation(rot);
 
     diff = pose2.inverse() * new_pose;
     res.linear.x = diff.getOrigin().x();
     res.linear.y = diff.getOrigin().y();
-    res.angular.z = tf::getYaw(diff.getRotation());
+    res.angular.z = tf2::getYaw(diff.getRotation());
     return res;
   }
 
@@ -361,7 +370,7 @@ namespace pose_follower {
     return res;
   }
 
-  bool HectorPathFollower::transformGlobalPlan(const tf::TransformListener& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan,
+  bool HectorPathFollower::transformGlobalPlan(const tf2_ros::Buffer& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan,
       const std::string& global_frame,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan){
 #if USE_CUSTOM_POSE
@@ -379,12 +388,12 @@ namespace pose_follower {
         return false;
       }
 
-      tf::StampedTransform transform;
+      tf2::StampedTransform transform;
       tf.lookupTransform(global_frame, ros::Time(), 
           plan_pose.header.frame_id, plan_pose.header.stamp, 
           plan_pose.header.frame_id, transform);
 
-      tf::Stamped<tf::Pose> tf_pose;
+      geometry_msgs::PoseStamped tf_pose;
       geometry_msgs::PoseStamped newer_pose;
       //now we'll transform until points are outside of our distance threshold
       for(unsigned int i = 0; i < global_plan.size(); ++i){
@@ -398,15 +407,15 @@ namespace pose_follower {
         transformed_plan.push_back(newer_pose);
       }
     }
-    catch(tf::LookupException& ex) {
+    catch(tf2::LookupException& ex) {
       ROS_ERROR("[hector_path_follower] No Transform available Error: %s\n", ex.what());
       return false;
     }
-    catch(tf::ConnectivityException& ex) {
+    catch(tf2::ConnectivityException& ex) {
       ROS_ERROR("[hector_path_follower] Connectivity Error: %s\n", ex.what());
       return false;
     }
-    catch(tf::ExtrapolationException& ex) {
+    catch(tf2::ExtrapolationException& ex) {
       ROS_ERROR("[hector_path_follower] Extrapolation Error: %s\n", ex.what());
       if (global_plan.size() > 0)
         ROS_ERROR("[hector_path_follower] Global Frame: %s Plan Frame size %d: %s\n", global_frame.c_str(), (unsigned int)global_plan.size(), global_plan[0].header.frame_id.c_str());
@@ -420,22 +429,21 @@ namespace pose_follower {
 
 
 #if USE_CUSTOM_POSE
-  bool HectorPathFollower::getRobotPose(tf::Stamped<tf::Pose>& global_pose) {
+  bool HectorPathFollower::getRobotPose(geometry_msgs::PoseStamped& global_pose) {
     nav_msgs::Odometry odom;
     {
       boost::mutex::scoped_lock lock(robot_odom_mutex_);
       odom = robot_odom_ ;
     }
 
-    tf::Pose pose;
-    tf::poseMsgToTF(odom.pose.pose, pose);
-
-    global_pose = tf::Stamped<tf::Pose>(pose, odom.header.stamp, odom.header.frame_id);
+    global_pose.pose = odom.pose.pose;
+    global_pose.header.stamp = odom.header.stamp;
+    global_pose.header.frame_id = odom.header.frame_id;
 
     return true;
   }
 #else
-  bool HectorPathFollower::getRobotPose(tf::Stamped<tf::Pose>& global_pose) {
+  bool HectorPathFollower::getRobotPose(geometry_msgs::PoseStamped& global_pose) {
 
     global_pose.setIdentity();
     tf::Stamped<tf::Pose> robot_pose;
